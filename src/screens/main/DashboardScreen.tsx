@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { enrollmentAPI, progressAPI, userAPI, guestCoursePurchaseAPI } from '../../services/api';
+import { enrollmentAPI, progressAPI, userAPI, guestCoursePurchaseAPI, dashboardAPI, courseAPI } from '../../services/api';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 import LinearGradient from 'react-native-linear-gradient';
 import ThemedText from '../../components/common/ThemedText';
 import ThemedCard from '../../components/common/ThemedCard';
@@ -24,6 +25,7 @@ const DashboardScreen: React.FC = () => {
   const theme = useSelector((state: RootState) => state.theme.theme);
   const { user } = useSelector((state: RootState) => state.auth);
   const { courses } = useSelector((state: RootState) => state.course);
+  const { hasActiveSubscription } = useSubscription();
   const dispatch = useDispatch();
   
   const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
@@ -117,15 +119,40 @@ let allCourses: Array<{
        
        setEnrolledCourses(coursesWithProgress);
        
-       // Calculate stats
-       const totalCourses = coursesWithProgress.length;
+       // Calculate stats - optimize for members
+       let totalCourses = coursesWithProgress.length;
        let completedCourses = 0;
        let inProgressCourses = 0;
        let totalHours = 0;
        
+       // For members with active subscription, show total available courses and hours
+       if (hasActiveSubscription) {
+         try {
+           const dashboardStatsResponse = await dashboardAPI.getDashboardStats();
+           if (dashboardStatsResponse.success && dashboardStatsResponse.data) {
+             totalCourses = dashboardStatsResponse.data.totalCourses;
+             console.log('🔑 Member Dashboard: Showing total available courses:', totalCourses);
+           }
+           
+           // Fetch all courses to calculate total hours for members
+           const allCoursesResponse = await courseAPI.getAllCourses(true); // Only published courses
+           if (allCoursesResponse.success && allCoursesResponse.data) {
+             const allCourses = allCoursesResponse.data;
+             totalHours = allCourses.reduce((sum, course) => {
+               return sum + (course.duration_hours || 0);
+             }, 0);
+             console.log('🔑 Member Dashboard: Showing total available hours:', totalHours);
+           }
+         } catch (error) {
+           console.log('Error fetching dashboard stats for member:', error);
+           // Fallback to enrolled courses calculation
+         }
+       }
+       
+       // Calculate stats from enrolled/purchased courses
        for (const course of coursesWithProgress) {
-         // Add duration to total hours
-         if (course.duration_hours) {
+         // Add duration to total hours (only if not a member, as members get total from all courses)
+         if (!hasActiveSubscription && course.duration_hours) {
            totalHours += course.duration_hours;
          }
          
@@ -364,10 +391,20 @@ let allCourses: Array<{
             
             {/* Course Statistics */}
             <View style={styles.statsGrid}>
-              {renderStatCard('Total Courses', userStats.totalCourses, 'school', theme.colors.primary)}
+              {renderStatCard(
+                hasActiveSubscription ? 'Available Courses' : 'My Courses', 
+                userStats.totalCourses, 
+                'school', 
+                theme.colors.primary
+              )}
             {renderStatCard('Completed', userStats.completedCourses, 'check-circle', theme.colors.success)}
             {renderStatCard('In Progress', userStats.inProgressCourses, 'trending-up', theme.colors.warning)}
-            {renderStatCard('Total Hours', userStats.totalHours, 'access-time', theme.colors.info)}
+            {renderStatCard(
+              hasActiveSubscription ? 'Available Hours' : 'Total Hours', 
+              userStats.totalHours, 
+              'access-time', 
+              theme.colors.info
+            )}
             </View>
           </View>
           

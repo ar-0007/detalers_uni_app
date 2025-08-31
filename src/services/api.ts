@@ -796,5 +796,76 @@ export const videoProgressAPI = {
   },
 };
 
+// Dashboard API types
+export interface DashboardStats {
+  totalUsers: number;
+  totalCourses: number;
+  totalEnrollments: number;
+  totalMentorshipBookings: number;
+  pendingAssignments: number;
+  totalRevenue: number;
+}
+
+export interface RecentEnrollment {
+  enrollment_id: string;
+  user_id: string;
+  course_id: string;
+  requested_at: string;
+  status: string;
+  user: {
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  course: {
+    course_id: string;
+    title: string;
+    thumbnail_url?: string;
+  };
+}
+
+export interface UpcomingMentorshipSession {
+  booking_id: string;
+  user_id: string;
+  slot_id: string;
+  payment_status: string;
+  zoom_link?: string;
+  userName: string;
+  mentorName: string;
+  isGuest?: boolean;
+}
+
+export interface RevenueOverview {
+  [monthYear: string]: number;
+}
+
+// Dashboard API functions
+export const dashboardAPI = {
+  // Get dashboard statistics including total courses count
+  getDashboardStats: async (): Promise<ApiResponse<DashboardStats>> => {
+    const response = await api.get('/dashboard/stats');
+    return response.data;
+  },
+
+  // Get recent enrollments
+  getRecentEnrollments: async (limit: number = 5): Promise<ApiResponse<RecentEnrollment[]>> => {
+    const response = await api.get(`/dashboard/recent-enrollments?limit=${limit}`);
+    return response.data;
+  },
+
+  // Get upcoming mentorship sessions
+  getUpcomingMentorshipSessions: async (limit: number = 5): Promise<ApiResponse<UpcomingMentorshipSession[]>> => {
+    const response = await api.get(`/dashboard/upcoming-mentorship?limit=${limit}`);
+    return response.data;
+  },
+
+  // Get revenue overview by month
+  getRevenueOverview: async (months: number = 6): Promise<ApiResponse<RevenueOverview>> => {
+    const response = await api.get(`/dashboard/revenue-overview?months=${months}`);
+    return response.data;
+  },
+};
+
 
 export default api;
