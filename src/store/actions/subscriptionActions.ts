@@ -1,5 +1,6 @@
 import { Dispatch } from '@reduxjs/toolkit';
 import { subscriptionAPI } from '../../services/api';
+import { badgeService } from '../../services/badgeService';
 import {
   fetchSubscriptionStart,
   fetchSubscriptionSuccess,
@@ -31,6 +32,7 @@ export const fetchUserSubscription = (forceRefresh = false) => {
     try {
       const state = getState();
       const { lastChecked, isLoading } = state.subscription;
+      const { user } = state.auth;
       
       // Skip if data is fresh and not forcing refresh
       if (!forceRefresh && isSubscriptionDataFresh(lastChecked) && !isLoading) {
@@ -44,7 +46,62 @@ export const fetchUserSubscription = (forceRefresh = false) => {
       
       dispatch(fetchSubscriptionStart());
       
-      // Fetch subscription status
+      // First, check user's badge status as the primary source of truth
+      let hasActiveSubscriptionFromBadge = false;
+      let badgeBasedSubscription: Subscription | null = null;
+      
+      if (user?.email) {
+         try {
+           console.log('🔍 fetchUserSubscription: Checking badge for user:', user.email);
+           const userBadge = await badgeService.getUserBadgeFromAPI(user.email);
+           console.log('🔍 fetchUserSubscription: Badge API response:', JSON.stringify(userBadge, null, 2));
+           console.log('🔍 fetchUserSubscription: Badge name check:', userBadge?.badge_name, 'Expected: Premium Member or Member');
+           
+           if (userBadge && (userBadge.badge_name === 'Premium Member' || userBadge.badge_name === 'Member')) {
+             hasActiveSubscriptionFromBadge = true;
+             console.log('✅ fetchUserSubscription: User has Premium Member badge - setting active subscription');
+            
+            // Create a subscription object based on badge info
+            badgeBasedSubscription = {
+              subscription_id: 'badge-based',
+              customer_email: user.email,
+              subscription_type: '3_MONTH', // Default type
+              status: 'ACTIVE',
+              start_date: userBadge.earned_at,
+              end_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 3 months from now
+              amount_paid: 0,
+              auto_renew: false,
+              source: 'Guest'
+            };
+          }
+        } catch (badgeError) {
+          console.warn('Failed to fetch user badge:', badgeError);
+        }
+      }
+      
+      // If badge indicates premium membership, use that as the source of truth
+      if (hasActiveSubscriptionFromBadge) {
+        const benefits: SubscriptionBenefits = {
+          allCoursesUnlocked: true,
+          freeMentorshipBookings: {
+            available: 1,
+            used: 0,
+            remaining: 1,
+          },
+        };
+        
+        dispatch(fetchSubscriptionSuccess({
+          subscription: badgeBasedSubscription,
+          hasActiveSubscription: true,
+          benefits,
+        }));
+        
+        // Unlock all content for premium members
+        dispatch(unlockAllContentForSubscriber() as any);
+        return;
+      }
+      
+      // Fallback to API-based subscription check
       const subscriptionResponse = await subscriptionAPI.getUserSubscription();
       
       if (subscriptionResponse.success && subscriptionResponse.data) {
@@ -99,8 +156,37 @@ export const fetchUserSubscription = (forceRefresh = false) => {
  * Check subscription status (lightweight check)
  */
 export const checkSubscriptionStatus = () => {
-  return async (dispatch: Dispatch) => {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
     try {
+      const state = getState();
+      const { user } = state.auth;
+      
+      // First check badge status
+       if (user?.email) {
+         try {
+           console.log('🔍 checkSubscriptionStatus: Checking badge for user:', user.email);
+           const userBadge = await badgeService.getUserBadgeFromAPI(user.email);
+           console.log('🔍 checkSubscriptionStatus: Badge API response:', JSON.stringify(userBadge, null, 2));
+           console.log('🔍 checkSubscriptionStatus: Badge name check:', userBadge?.badge_name, 'Expected: Premium Member or Member');
+           
+           if (userBadge && (userBadge.badge_name === 'Premium Member' || userBadge.badge_name === 'Member')) {
+             console.log('✅ checkSubscriptionStatus: Premium badge found - updating subscription status');
+             dispatch(updateSubscriptionStatus({
+               hasActiveSubscription: true,
+             }));
+             
+             // Unlock all content for premium members
+             dispatch(unlockAllContentForSubscriber() as any);
+             return;
+           } else {
+             console.log('❌ checkSubscriptionStatus: No premium badge found');
+           }
+         } catch (badgeError) {
+           console.warn('❌ checkSubscriptionStatus: Failed to fetch user badge:', badgeError);
+         }
+       }
+      
+      // Fallback to API-based subscription check
       const response = await subscriptionAPI.getMySubscriptionStatus();
       
       if (response.success && response.data) {

@@ -46,6 +46,7 @@ const CoursesScreen: React.FC = () => {
     subscriptionStatus,
     isExpiringSoon,
     checkCourseAccess,
+    refreshSubscription,
   } = useSubscription();
   const { guardedNavigate, canNavigate } = useNavigationGuard();
   const [selectedTab, setSelectedTab] = useState<'my-courses' | 'all-courses'>('my-courses');
@@ -193,9 +194,37 @@ const CoursesScreen: React.FC = () => {
     await Promise.all([
       dispatch(fetchCourses(true)),
       fetchEnrolledCourses(),
-      fetchMyPurchasedCourses() // Use secure method to fetch user's purchased courses
+      fetchMyPurchasedCourses(), // Use secure method to fetch user's purchased courses
+      refreshSubscription() // Also refresh subscription status
     ]);
     setRefreshing(false);
+  };
+
+  // Manual subscription refresh for debugging
+  const handleManualSubscriptionRefresh = async () => {
+    console.log('🔄 Manual subscription refresh triggered');
+    
+    // Direct badge API test
+    if (user?.email) {
+      try {
+        console.log('🧪 Testing badge API directly for:', user.email);
+        const { badgeService } = await import('../../services/badgeService');
+        const badgeResult = await badgeService.getUserBadgeFromAPI(user.email);
+        console.log('🧪 Direct badge API result:', JSON.stringify(badgeResult, null, 2));
+        
+        if (badgeResult) {
+          console.log('🧪 Badge name:', badgeResult.badge_name);
+          console.log('🧪 Is Member?', badgeResult.badge_name === 'Member');
+          console.log('🧪 Is Premium Member?', badgeResult.badge_name === 'Premium Member');
+        } else {
+          console.log('🧪 No badge returned from API');
+        }
+      } catch (error) {
+        console.error('🧪 Badge API test error:', error);
+      }
+    }
+    
+    await refreshSubscription();
   };
 
   // Handle course purchase
@@ -316,20 +345,35 @@ const CoursesScreen: React.FC = () => {
     return match ? parseInt(match[1], 10) : 0;
   };
 
-  // Combine enrolled and purchased courses for "My Courses" tab
-  const allMyCourses = [...enrolledCourses, ...purchasedCourses].filter((course, index, self) => 
-    index === self.findIndex(c => c.course_id === course.course_id)
-  );
+  // For premium members, show ALL courses in "My Courses" tab
+  // For non-premium members, only show enrolled and purchased courses
+  let allMyCourses: Course[];
+  let allAvailableCourses: Course[];
   
-  // Group series courses for "My Courses" tab
+  if (hasActiveSubscription) {
+    // Premium members: All courses are "their courses" since they have access to everything
+    allMyCourses = courses; // Show all courses in My Courses
+    allAvailableCourses = []; // No courses in Explore tab since they have access to all
+    
+    console.log('🔑 Premium Member: Showing all', courses.length, 'courses in My Courses tab');
+  } else {
+    // Non-premium members: Only show enrolled and purchased courses
+    const enrolledAndPurchased = [...enrolledCourses, ...purchasedCourses].filter((course, index, self) => 
+      index === self.findIndex(c => c.course_id === course.course_id)
+    );
+    
+    allMyCourses = enrolledAndPurchased;
+    
+    // Filter available courses (exclude enrolled and purchased ones)
+    allAvailableCourses = courses.filter(course => 
+      !enrolledAndPurchased.some(myCourse => myCourse.course_id === course.course_id)
+    );
+    
+    console.log('👤 Regular User: Showing', enrolledAndPurchased.length, 'enrolled/purchased courses in My Courses tab');
+  }
+  
+  // Group series courses for both tabs
   const myCourses = groupSeriesCourses(allMyCourses);
-
-  // Filter available courses (exclude enrolled and purchased ones)
-  const allAvailableCourses = courses.filter(course => 
-    !allMyCourses.some(myCourse => myCourse.course_id === course.course_id)
-  );
-  
-  // Group series courses for "Explore" tab
   const availableCourses = groupSeriesCourses(allAvailableCourses);
 
   // Apply search and level filters based on selected tab
@@ -352,10 +396,28 @@ const CoursesScreen: React.FC = () => {
   const renderCourseCard = ({ item: course }: { item: Course }) => {
     const isMyCourse = selectedTab === 'my-courses';
     const isPurchased = (course as any).is_purchased;
+    const isEnrolled = enrolledCourses.some(enrolled => enrolled.course_id === course.course_id);
     
     // Check subscription access
     const hasSubscriptionAccess = hasActiveSubscription;
     const isUnlockedBySubscription = hasSubscriptionAccess;
+    
+    // For premium members in 'My Courses' tab, determine the access type
+    const isPremiumAccess = isMyCourse && hasActiveSubscription && !isPurchased && !isEnrolled;
+    
+    // Debug logging for subscription status (only log for first course to avoid spam)
+    if (course.course_id === courses[0]?.course_id) {
+      console.log('🔍 CoursesScreen Debug:', {
+        userEmail: user?.email,
+        hasActiveSubscription,
+        hasSubscriptionAccess,
+        isUnlockedBySubscription,
+        subscriptionStatus,
+        courseTitle: course.title,
+        isAuthenticated,
+        selectedTab
+      });
+    }
     
     // Use same logic as groupSeriesCourses to detect series courses
     const isSeriesCourse = course.video_series || 
@@ -399,19 +461,22 @@ const CoursesScreen: React.FC = () => {
           
           {/* Status badges */}
           {isMyCourse && (
-             <View style={[styles.statusBadge, { backgroundColor: isPurchased ? theme.colors.success : theme.colors.primary }]}>
+             <View style={[styles.statusBadge, { 
+               backgroundColor: isPremiumAccess ? theme.colors.warning : 
+                               isPurchased ? theme.colors.success : theme.colors.primary 
+             }]}>
                <Icon 
-                 name={isPurchased ? 'shopping-cart' : 'school'} 
+                 name={isPremiumAccess ? 'crown' : isPurchased ? 'shopping-cart' : 'school'} 
                  size={12} 
                  color={theme.colors.background} 
                />
                <Text style={[styles.statusText, { color: theme.colors.background }]}>
-                 {isPurchased ? 'Purchased' : 'Enrolled'}
+                 {isPremiumAccess ? 'Premium Access' : isPurchased ? 'Purchased' : 'Enrolled'}
                </Text>
              </View>
            )}
            
-           {/* Subscription access badge */}
+           {/* Subscription access badge for Explore tab */}
            {!isMyCourse && isUnlockedBySubscription && (
              <View style={[styles.statusBadge, { backgroundColor: theme.colors.warning }]}>
                <Icon 
@@ -445,7 +510,7 @@ const CoursesScreen: React.FC = () => {
                  <Icon name="lock" size={18} color={theme.colors.textSecondary} />
                )}
                
-               {!isMyCourse && isUnlockedBySubscription && (
+               {((!isMyCourse && isUnlockedBySubscription) || (isMyCourse && (isPurchased || isEnrolled || isPremiumAccess))) && (
                  <Icon name="lock-open" size={18} color={theme.colors.success} />
                )}
             </View>
@@ -565,14 +630,33 @@ const CoursesScreen: React.FC = () => {
       
       {/* Subscription Status */}
       {isAuthenticated && (
-        <SubscriptionStatus 
-          showDetails={true}
-          onUpgradePress={() => {
-            // Navigate to subscription screen or show upgrade modal
-            console.log('Navigate to subscription upgrade');
-          }}
-          style={{ marginTop: 12 }}
-        />
+        <View style={{ marginTop: 12 }}>
+          <SubscriptionStatus 
+            showDetails={true}
+            onUpgradePress={() => {
+              // Navigate to subscription screen or show upgrade modal
+              console.log('Navigate to subscription upgrade');
+            }}
+          />
+          {/* Debug refresh button - remove in production */}
+          {!hasActiveSubscription && (
+            <TouchableOpacity 
+              style={{
+                marginTop: 8,
+                backgroundColor: theme.colors.warning,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+                alignSelf: 'flex-start'
+              }}
+              onPress={handleManualSubscriptionRefresh}
+            >
+              <Text style={{ color: theme.colors.background, fontSize: 12, fontWeight: '600' }}>
+                🔄 Refresh Badge Status
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
