@@ -69,7 +69,7 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
       onRequestClose={onRequestClose}
     >
       <View style={styles.modalOverlay}>
-        <GlassCard style={[styles.dialogCard, { backgroundColor: theme.colors.surface }]}>
+        <GlassCard style={styles.dialogCard}>
           <View style={styles.dialogHeader}>
             <Icon name={getIconName()} size={40} color={getIconColor()} />
             <Text style={[styles.dialogTitle, { color: theme.colors.text }]}>

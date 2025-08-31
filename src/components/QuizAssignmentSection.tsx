@@ -94,8 +94,8 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
           Loading quizzes and assignments...
         </Text>
       </View>
@@ -104,14 +104,14 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
 
   if (error) {
     return (
-      <GlassCard style={[styles.errorContainer, { backgroundColor: theme.cardBackground }]}>
-        <Icon name="error" size={48} color={theme.error} />
-        <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+      <GlassCard style={styles.errorContainer}>
+        <Icon name="error" size={48} color={theme.colors.error} />
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
         <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: theme.primary }]}
+          style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
           onPress={loadQuizzesAndAssignments}
         >
-          <Text style={[styles.retryButtonText, { color: theme.background }]}>Retry</Text>
+          <Text style={[styles.retryButtonText, { color: theme.colors.background }]}>Retry</Text>
         </TouchableOpacity>
       </GlassCard>
     );
@@ -119,10 +119,10 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
 
   if (totalItems === 0) {
     return (
-      <GlassCard style={[styles.emptyContainer, { backgroundColor: theme.cardBackground }]}>
-        <Icon name="school" size={48} color={theme.textSecondary} />
-        <Text style={[styles.emptyTitle, { color: theme.text }]}>No Content Available</Text>
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+      <GlassCard style={styles.emptyContainer}>
+        <Icon name="school" size={48} color={theme.colors.textSecondary} />
+        <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Content Available</Text>
+        <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
           There are no quizzes or assignments for this {chapterId ? 'chapter' : 'course'} yet.
         </Text>
       </GlassCard>
@@ -133,25 +133,25 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Quizzes & Assignments</Text>
-        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quizzes & Assignments</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
           {quizzes.length} Quiz{quizzes.length !== 1 ? 'es' : ''} • {assignments.length} Assignment{assignments.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
       {/* Tabs */}
-      <View style={[styles.tabContainer, { backgroundColor: theme.cardBackground }]}>
+      <View style={[styles.tabContainer, { backgroundColor: theme.colors.card }]}>
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'all' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'all' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('all')}
         >
           <Text style={[
             styles.tabText,
             {
-              color: activeTab === 'all' ? theme.primary : theme.textSecondary,
+              color: activeTab === 'all' ? theme.colors.primary : theme.colors.textSecondary,
               fontWeight: activeTab === 'all' ? '600' : '400'
             }
           ]}>
@@ -162,14 +162,14 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'quizzes' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'quizzes' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('quizzes')}
         >
           <Text style={[
             styles.tabText,
             {
-              color: activeTab === 'quizzes' ? theme.primary : theme.textSecondary,
+              color: activeTab === 'quizzes' ? theme.colors.primary : theme.colors.textSecondary,
               fontWeight: activeTab === 'quizzes' ? '600' : '400'
             }
           ]}>
@@ -180,14 +180,14 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'assignments' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'assignments' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('assignments')}
         >
           <Text style={[
             styles.tabText,
             {
-              color: activeTab === 'assignments' ? theme.primary : theme.textSecondary,
+              color: activeTab === 'assignments' ? theme.colors.primary : theme.colors.textSecondary,
               fontWeight: activeTab === 'assignments' ? '600' : '400'
             }
           ]}>

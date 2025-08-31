@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ThemeToggle: React.FC = () => {
   const dispatch = useDispatch();
-  const isDark = useSelector((state: RootState) => state.theme.isDark);
+  const isDark = useSelector((state: RootState) => state.theme.isDarkMode);
   const theme = useSelector((state: RootState) => state.theme.theme);
 
   const toggleTheme = () => {
@@ -50,4 +50,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ThemeToggle; 
+export default ThemeToggle;

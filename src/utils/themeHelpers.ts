@@ -22,7 +22,7 @@ export const createGlassStyle = (theme: Theme) => ({
   padding: theme.spacing.md,
 });
 
-export const createButtonStyle = (theme: Theme, variant: 'primary' | 'secondary' | 'outline' = 'primary') => {
+export const createButtonStyle = (theme: Theme, variant: 'primary' | 'secondary' | 'outline' | 'ghost' = 'primary') => {
   const baseStyle = {
     height: theme.dimensions.buttonHeight,
     borderRadius: theme.borderRadius.md,
@@ -51,6 +51,12 @@ export const createButtonStyle = (theme: Theme, variant: 'primary' | 'secondary'
         backgroundColor: 'transparent',
         borderWidth: 2,
         borderColor: theme.colors.primary,
+      };
+    case 'ghost':
+      return {
+        ...baseStyle,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
       };
     default:
       return baseStyle;
@@ -178,4 +184,4 @@ export const commonStyles = {
     right: 0,
     bottom: 0,
   },
-}; 
+};

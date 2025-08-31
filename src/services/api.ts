@@ -1,23 +1,42 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { tokenStorage } from '../utils/storage';
+import { getBestNetworkConfig, logNetworkDiagnostics } from '../utils/networkConfig';
 
-// API Configuration - Dynamic based on platform and environment
-const getApiBaseUrl = () => {
-  // For development, you can change this based on your setup
-  const isDevelopment = __DEV__;
+// API Configuration - Dynamic network detection
+let API_BASE_URL = 'http://localhost:4000/api'; // Default fallback
+let isApiConfigured = false;
+let configPromise: Promise<void> | null = null;
+
+// Initialize API with dynamic network detection
+const initializeApiConfig = async (): Promise<void> => {
+  if (isApiConfigured) return;
   
-  if (isDevelopment) {
-    // Android emulator - using your computer's IP address
-    return 'http://192.168.10.10:4000/api';
-    // Alternative IP: http://192.168.137.1:4000/api
-    // For iOS simulator, use: 'http://localhost:4000/api'
+  try {
+    console.log('🔍 Detecting best network configuration...');
+    API_BASE_URL = await getBestNetworkConfig();
+    console.log('✅ API Base URL set to:', API_BASE_URL);
+
+    // Update axios instance base URL
+    api.defaults.baseURL = API_BASE_URL;
+    isApiConfigured = true;
+  } catch (error) {
+    console.error('❌ Failed to detect network config, using fallback:', error);
+    logNetworkDiagnostics();
+    // Keep default fallback URL
+    isApiConfigured = true; // Mark as configured even with fallback
   }
-  
-  // Production URL (replace with your actual production URL)
-  return 'https://your-production-api.com/api';
 };
 
-const API_BASE_URL = getApiBaseUrl();
+// Ensure API is configured before making requests
+const ensureApiConfigured = async (): Promise<void> => {
+  if (isApiConfigured) return;
+  
+  if (!configPromise) {
+    configPromise = initializeApiConfig();
+  }
+  
+  await configPromise;
+};
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -28,12 +47,18 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Debug logging
-console.log('API Base URL:', API_BASE_URL);
+// Initialize network configuration on app start
+configPromise = initializeApiConfig();
 
-// Request interceptor to add auth token
+// Debug logging
+console.log('Initial API Base URL:', API_BASE_URL);
+
+// Request interceptor to add auth token and ensure API is configured
 api.interceptors.request.use(
   async (config) => {
+    // Ensure API is properly configured before making requests
+    await ensureApiConfigured();
+    
     const token = await tokenStorage.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -117,6 +142,11 @@ export interface VideoSeries {
   created_at: string;
   created_by?: string; // Admin who uploaded
 }
+
+// Auth API functions
+// Export utility functions
+export { initializeApiConfig };
+export const getCurrentApiUrl = () => API_BASE_URL;
 
 // Auth API functions
 export const authAPI = {
@@ -428,7 +458,7 @@ export const assignmentAPI = {
     const formData = new FormData();
     formData.append('assignment_id', assignmentId);
     formData.append('submission_text', submissionText);
-    
+
     const response = await api.post('/submissions', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -512,6 +542,69 @@ export const paymentAPI = {
   },
 };
 
+// Subscription API functions
+export const subscriptionAPI = {
+  // Get user's current subscription status
+  getUserSubscription: async (): Promise<ApiResponse<{
+    subscription: any;
+    badges: any[];
+    hasActiveSubscription: boolean;
+  }>> => {
+    const response = await api.get('/subscriptions/my-subscription');
+    return response.data;
+  },
+
+  // Get user's subscription history
+  getSubscriptionHistory: async (page = 1, limit = 10): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/subscriptions/history?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  // Create subscription payment intent
+  createSubscriptionPaymentIntent: async (subscriptionType: 'MONTHLY' | '3_MONTH'): Promise<ApiResponse<any>> => {
+    const response = await api.post('/subscriptions/create-payment-intent', { subscriptionType });
+    return response.data;
+  },
+
+  // Confirm subscription payment
+  confirmSubscriptionPayment: async (paymentIntentId: string, subscriptionType: 'MONTHLY' | '3_MONTH'): Promise<ApiResponse<any>> => {
+    const response = await api.post('/subscriptions/confirm-payment', { paymentIntentId, subscriptionType });
+    return response.data;
+  },
+
+  // Get user's regular subscriptions
+  getUserSubscriptions: async (userId: string): Promise<ApiResponse<any[]>> => {
+    const response = await api.get(`/subscriptions/user/${userId}`);
+    return response.data;
+  },
+
+  // Get guest subscriptions by email
+  getGuestSubscriptionsByEmail: async (email: string): Promise<ApiResponse<any[]>> => {
+    const response = await api.get(`/subscriptions/guest/${encodeURIComponent(email)}`);
+    return response.data;
+  },
+
+  // Get current user's subscription status (for badge determination)
+  getMySubscriptionStatus: async (): Promise<ApiResponse<{
+    hasActiveSubscription: boolean;
+    subscriptionType?: string;
+    endDate?: string;
+    source?: 'Regular' | 'Guest';
+  }>> => {
+    const response = await api.get('/subscriptions/my-status');
+    return response.data;
+  },
+
+  // Get all subscription data for analysis (admin only)
+  getAllSubscriptionData: async (): Promise<ApiResponse<{
+    regularSubs: any[];
+    guestSubs: any[];
+  }>> => {
+    const response = await api.get('/subscriptions/admin/all-data');
+    return response.data;
+  },
+};
+
 // Guest Course Purchase API functions
 export const guestCoursePurchaseAPI = {
   // DEPRECATED: Security risk - allows access to any user's courses
@@ -519,7 +612,7 @@ export const guestCoursePurchaseAPI = {
     const response = await api.get(`/guest-course-purchases/email/${encodeURIComponent(email)}`);
     return response.data;
   },
-  
+
   // Secure endpoint - gets authenticated user's purchased courses
   getMyPurchasedCourses: async (): Promise<ApiResponse<Course[]>> => {
     const response = await api.get('/guest-course-purchases/my-courses');
@@ -702,5 +795,6 @@ export const videoProgressAPI = {
     return response.data;
   },
 };
+
 
 export default api;

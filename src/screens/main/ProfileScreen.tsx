@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Switch, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Switch, Image, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { logout } from '../../store/slices/authSlice';
 import { toggleTheme } from '../../store/slices/themeSlice';
 import Button from '../../components/common/Button';
-import FirstTimeProfileModal from '../../components/modals/FirstTimeProfileModal';
+
 import ProfileUpdateModal from '../../components/modals/ProfileUpdateModal';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useCustomDialog } from '../../hooks/useCustomDialog';
+import { badgeService } from '../../services/badgeService';
 
 const { width } = Dimensions.get('window');
 
@@ -19,15 +20,38 @@ const ProfileScreen: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { showDialog, DialogComponent } = useCustomDialog();
   
-  const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
-  const [showUpdateProfileModal, setShowUpdateProfileModal] = useState(false);
 
-  // Check for first-time login
+  const [showUpdateProfileModal, setShowUpdateProfileModal] = useState(false);
+  const [userBadge, setUserBadge] = useState<{
+    badge_name: string;
+    badge_type: string;
+    description: string;
+    color: string;
+    icon: string;
+    earned_at: string;
+  } | null>(null);
+  const [badgeLoading, setBadgeLoading] = useState(false);
+
+
+
+  // Fetch user badge
   useEffect(() => {
-    if (user?.isFirstLogin) {
-      setShowFirstTimeModal(true);
-    }
-  }, [user?.isFirstLogin]);
+    const fetchUserBadge = async () => {
+      if (user?.email) {
+        setBadgeLoading(true);
+        try {
+          const badge = await badgeService.getUserBadgeFromAPI(user.email);
+          setUserBadge(badge);
+        } catch (error) {
+          console.error('Error fetching user badge:', error);
+        } finally {
+          setBadgeLoading(false);
+        }
+      }
+    };
+
+    fetchUserBadge();
+  }, [user?.email]);
 
   const handleLogout = () => {
     showDialog({
@@ -65,7 +89,7 @@ const ProfileScreen: React.FC = () => {
     height: 100,
     borderRadius: 50,
     backgroundColor: theme.colors.card,
-    alignSelf: 'center',
+    alignSelf: 'center' as const,
     marginBottom: theme.spacing.md,
     borderWidth: 4,
     borderColor: theme.colors.background,
@@ -79,15 +103,15 @@ const ProfileScreen: React.FC = () => {
   const userNameStyle = {
     ...theme.typography.h3,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    fontWeight: '700' as const,
     marginBottom: 4,
   };
 
   const userEmailStyle = {
     ...theme.typography.body1,
     color: theme.colors.background,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     opacity: 0.9,
   };
 
@@ -106,7 +130,7 @@ const ProfileScreen: React.FC = () => {
     backgroundColor: theme.colors.card,
     borderRadius: 20,
     padding: theme.spacing.lg,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     flex: 1,
     marginHorizontal: 5,
     shadowColor: '#000',
@@ -119,14 +143,14 @@ const ProfileScreen: React.FC = () => {
   const statNumberStyle = {
     ...theme.typography.h4,
     color: theme.colors.primary,
-    fontWeight: 'bold',
+    fontWeight: '700' as const,
     marginBottom: 4,
   };
 
   const statLabelStyle = {
     ...theme.typography.caption,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   };
 
   const sectionCardStyle = {
@@ -145,13 +169,13 @@ const ProfileScreen: React.FC = () => {
     ...theme.typography.h5,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   };
 
   const infoRowStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
@@ -165,13 +189,13 @@ const ProfileScreen: React.FC = () => {
   const infoValueStyle = {
     ...theme.typography.body2,
     color: theme.colors.text,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   };
 
   const themeToggleContainerStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingVertical: theme.spacing.sm,
   };
 
@@ -190,8 +214,8 @@ const ProfileScreen: React.FC = () => {
   const logoutButtonTextStyle = {
     ...theme.typography.button,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: 'center' as const,
+    fontWeight: '600' as const,
   };
 
   const updateProfileButtonStyle = {
@@ -209,8 +233,8 @@ const ProfileScreen: React.FC = () => {
   const updateProfileButtonTextStyle = {
     ...theme.typography.button,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: 'center' as const,
+    fontWeight: '600' as const,
   };
 
   return (
@@ -221,9 +245,9 @@ const ProfileScreen: React.FC = () => {
           <Text style={{
             fontSize: 40,
             color: theme.colors.primary,
-            textAlign: 'center',
+            textAlign: 'center' as const,
             lineHeight: 100,
-            fontWeight: 'bold',
+            fontWeight: '700' as const,
           }}>
             {user?.firstName?.charAt(0)?.toUpperCase() || user?.lastName?.charAt(0)?.toUpperCase() || 'U'}
           </Text>
@@ -235,6 +259,52 @@ const ProfileScreen: React.FC = () => {
           }
         </Text>
         <Text style={userEmailStyle}>{user?.email || 'user@example.com'}</Text>
+        
+        {/* User Badge */}
+        {badgeLoading ? (
+          <View style={{
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            justifyContent: 'center' as const,
+            marginTop: theme.spacing.sm,
+          }}>
+            <ActivityIndicator size="small" color={theme.colors.background} />
+            <Text style={{
+              ...theme.typography.caption,
+              color: theme.colors.background,
+              marginLeft: theme.spacing.xs,
+              opacity: 0.8,
+            }}>Loading badge...</Text>
+          </View>
+        ) : userBadge ? (
+          <View style={{
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            justifyContent: 'center' as const,
+            marginTop: theme.spacing.sm,
+            backgroundColor: userBadge.color,
+            paddingHorizontal: theme.spacing.md,
+            paddingVertical: theme.spacing.xs,
+            borderRadius: 20,
+            alignSelf: 'center' as const,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 4,
+          }}>
+            <Text style={{
+              fontSize: 16,
+              marginRight: theme.spacing.xs,
+            }}>{userBadge.icon === 'crown' ? '👑' : userBadge.icon === 'user' ? '👤' : '✨'}</Text>
+            <Text style={{
+              ...theme.typography.caption,
+              color: '#FFFFFF',
+              fontWeight: '600' as const,
+              fontSize: 12,
+            }}>{userBadge.badge_name}</Text>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator={false}>
@@ -259,7 +329,7 @@ const ProfileScreen: React.FC = () => {
           <View style={infoRowStyle}>
             <Text style={infoLabelStyle}>Account Status</Text>
             <View style={{
-              backgroundColor: user?.isBlocked ? theme.colors.error : theme.colors.success,
+              backgroundColor: !user?.isActive ? theme.colors.error : theme.colors.success,
               paddingHorizontal: 12,
               paddingVertical: 4,
               borderRadius: 12,
@@ -267,9 +337,9 @@ const ProfileScreen: React.FC = () => {
               <Text style={{
                 color: theme.colors.background,
                 fontSize: 12,
-                fontWeight: '600',
+                fontWeight: '600' as const,
               }}>
-                {user?.isBlocked ? 'Blocked' : 'Active'}
+                {!user?.isActive ? 'Blocked' : 'Active'}
               </Text>
             </View>
           </View>
@@ -282,7 +352,7 @@ const ProfileScreen: React.FC = () => {
             <Text style={infoLabelStyle}>Dark Theme</Text>
             <Switch
               value={isDarkMode}
-              onValueChange={() => dispatch(toggleTheme())}
+              onValueChange={() => { dispatch(toggleTheme()); }}
               trackColor={{ 
                 false: theme.colors.border, 
                 true: theme.colors.primary 
@@ -298,7 +368,7 @@ const ProfileScreen: React.FC = () => {
           style={updateProfileButtonStyle} 
           onPress={() => setShowUpdateProfileModal(true)}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const }}>
             <Icon name="edit" size={20} color={theme.colors.background} style={{ marginRight: 8 }} />
             <Text style={updateProfileButtonTextStyle}>Update Profile</Text>
           </View>
@@ -310,11 +380,7 @@ const ProfileScreen: React.FC = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* First Time Profile Modal */}
-      <FirstTimeProfileModal
-        visible={showFirstTimeModal}
-        onClose={() => setShowFirstTimeModal(false)}
-      />
+
 
       {/* Update Profile Modal */}
       <ProfileUpdateModal

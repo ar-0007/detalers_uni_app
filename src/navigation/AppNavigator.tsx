@@ -24,7 +24,7 @@ import CoursePlayerScreen from '../screens/main/CoursePlayerScreen';
 
 // Navigation Types
 import { RootStackParamList, MainTabParamList } from './types';
-export { RootStackParamList, MainTabParamList };
+export type { RootStackParamList, MainTabParamList };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

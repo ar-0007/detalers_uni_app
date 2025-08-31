@@ -52,7 +52,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
 
     // Animate active tab
     const activeIndex = state.index;
-    tabAnimations.forEach((anim, index) => {
+    tabAnimations.forEach((anim: any, index: number) => {
       if (index === activeIndex) {
         Animated.parallel([
           Animated.spring(anim.scale, {
@@ -173,7 +173,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Icon name={tabConfigItem?.icon} size={24} color={theme.colors.textInverse} />
+                <Icon name={tabConfigItem?.icon || 'home'} size={24} color={theme.colors.textInverse} />
               </LinearGradient>
               <ThemedText
                 variant="caption"
@@ -188,7 +188,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
           ) : (
             <View style={styles.inactiveTabContainer}>
               <View style={[styles.inactiveIconContainer, { backgroundColor: theme.colors.glass }]}>
-                <Icon name={tabConfigItem?.icon} size={24} color={theme.colors.textSecondary} />
+                <Icon name={tabConfigItem?.icon || 'home'} size={24} color={theme.colors.textSecondary} />
               </View>
               <ThemedText
                 variant="caption"

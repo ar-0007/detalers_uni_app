@@ -12,6 +12,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { store } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import ThemeProvider from './src/contexts/ThemeContext';
+import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 import { STRIPE_CONFIG } from './src/config/stripe';
 
 function App() {
@@ -21,11 +22,13 @@ function App() {
     <Provider store={store}>
       <StripeProvider publishableKey={STRIPE_CONFIG.publishableKey}>
         <ThemeProvider>
-          <StatusBar 
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
-            backgroundColor={isDarkMode ? '#121212' : '#FFFFFF'}
-          />
-          <AppNavigator />
+          <SubscriptionProvider>
+            <StatusBar 
+              barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+              backgroundColor={isDarkMode ? '#121212' : '#FFFFFF'}
+            />
+            <AppNavigator />
+          </SubscriptionProvider>
         </ThemeProvider>
       </StripeProvider>
     </Provider>

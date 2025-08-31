@@ -113,14 +113,14 @@ export const fetchCategories = () => {
 export const fetchVideoSeries = () => {
   return async (dispatch: Dispatch) => {
     try {
-      dispatch(fetchPodcastsStart());
+      dispatch(fetchVideoSeriesStart());
 
       const response = await courseAPI.getVideoSeries();
 
       if (response.success) {
-        dispatch(fetchPodcastsSuccess(response.data || []));
+        dispatch(fetchVideoSeriesSuccess(response.data || []));
       } else {
-        dispatch(fetchPodcastsFailure(response.error?.message || 'Failed to fetch video series'));
+        dispatch(fetchVideoSeriesFailure(response.error?.message || 'Failed to fetch video series'));
       }
     } catch (error: any) {
       console.error('Fetch video series error:', error);
@@ -135,7 +135,7 @@ export const fetchVideoSeries = () => {
         errorMessage = error.message;
       }
 
-      dispatch(fetchPodcastsFailure(errorMessage));
+      dispatch(fetchVideoSeriesFailure(errorMessage));
     }
   };
 };

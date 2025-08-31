@@ -25,6 +25,10 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { useCustomDialog } from '../../hooks/useCustomDialog';
+import { useSubscription, useContentAccess } from '../../contexts/SubscriptionContext';
+import SubscriptionStatus from '../../components/common/SubscriptionStatus';
+import ContentAccessGuard from '../../components/common/ContentAccessGuard';
+import { useNavigationGuard } from '../../hooks/useNavigationGuard';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -37,6 +41,13 @@ const CoursesScreen: React.FC = () => {
   const { courses, isLoading, error } = useSelector((state: RootState) => state.course);
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { showDialog, DialogComponent } = useCustomDialog();
+  const {
+    hasActiveSubscription,
+    subscriptionStatus,
+    isExpiringSoon,
+    checkCourseAccess,
+  } = useSubscription();
+  const { guardedNavigate, canNavigate } = useNavigationGuard();
   const [selectedTab, setSelectedTab] = useState<'my-courses' | 'all-courses'>('my-courses');
   const [refreshing, setRefreshing] = useState(false);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
@@ -342,6 +353,10 @@ const CoursesScreen: React.FC = () => {
     const isMyCourse = selectedTab === 'my-courses';
     const isPurchased = (course as any).is_purchased;
     
+    // Check subscription access
+    const hasSubscriptionAccess = hasActiveSubscription;
+    const isUnlockedBySubscription = hasSubscriptionAccess;
+    
     // Use same logic as groupSeriesCourses to detect series courses
     const isSeriesCourse = course.video_series || 
       (course.title.includes('Part ') && /Part \d+/.test(course.title));
@@ -382,6 +397,7 @@ const CoursesScreen: React.FC = () => {
             </View>
           )}
           
+          {/* Status badges */}
           {isMyCourse && (
              <View style={[styles.statusBadge, { backgroundColor: isPurchased ? theme.colors.success : theme.colors.primary }]}>
                <Icon 
@@ -391,6 +407,20 @@ const CoursesScreen: React.FC = () => {
                />
                <Text style={[styles.statusText, { color: theme.colors.background }]}>
                  {isPurchased ? 'Purchased' : 'Enrolled'}
+               </Text>
+             </View>
+           )}
+           
+           {/* Subscription access badge */}
+           {!isMyCourse && isUnlockedBySubscription && (
+             <View style={[styles.statusBadge, { backgroundColor: theme.colors.warning }]}>
+               <Icon 
+                 name="crown" 
+                 size={12} 
+                 color={theme.colors.background} 
+               />
+               <Text style={[styles.statusText, { color: theme.colors.background }]}>
+                 Premium Access
                </Text>
              </View>
            )}
@@ -411,8 +441,12 @@ const CoursesScreen: React.FC = () => {
                 </View>
               )}
               
-              {!isMyCourse && (
+              {!isMyCourse && !isUnlockedBySubscription && (
                  <Icon name="lock" size={18} color={theme.colors.textSecondary} />
+               )}
+               
+               {!isMyCourse && isUnlockedBySubscription && (
+                 <Icon name="lock-open" size={18} color={theme.colors.success} />
                )}
             </View>
           </View>
@@ -450,38 +484,70 @@ const CoursesScreen: React.FC = () => {
             )}
           </View>
           
-          <TouchableOpacity 
-            style={[
-               styles.actionButton,
-               { 
-                 backgroundColor: isMyCourse ? theme.colors.success : theme.colors.primary,
-               }
-             ]}
-             disabled={purchaseLoading === course.course_id}
-             onPress={() => {
-               if (isMyCourse) {
-                 // Navigate to CoursePlayerScreen for purchased/enrolled courses
-                 navigation.navigate('CoursePlayer', { course });
-               } else {
-                 handleCoursePurchase(course);
-               }
-             }}
-           >
-             {purchaseLoading === course.course_id ? (
-               <ActivityIndicator size="small" color={theme.colors.background} />
-             ) : (
-               <>
-                 <Text style={[styles.actionButtonText, { color: theme.colors.background }]}>
-                   {isMyCourse ? (isSeriesCourse ? 'Watch Series' : 'Continue Learning') : 'Buy Now'}
-                 </Text>
-                 <Icon 
-                   name={isMyCourse ? (isSeriesCourse ? "playlist-play" : "play-arrow") : "shopping-cart"} 
-                   size={18} 
-                   color={theme.colors.background} 
-                 />
-               </>
-             )}
-          </TouchableOpacity>
+          {!isMyCourse && !isUnlockedBySubscription && (
+             <TouchableOpacity 
+               style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+               disabled={purchaseLoading === course.course_id}
+               onPress={() => handleCoursePurchase(course)}
+             >
+               {purchaseLoading === course.course_id ? (
+                 <ActivityIndicator size="small" color={theme.colors.background} />
+               ) : (
+                 <>
+                   <Text style={[styles.actionButtonText, { color: theme.colors.background }]}>
+                     Buy Now
+                   </Text>
+                   <Icon 
+                     name="shopping-cart" 
+                     size={18} 
+                     color={theme.colors.background} 
+                   />
+                 </>
+               )}
+             </TouchableOpacity>
+           )}
+           
+           {!isMyCourse && isUnlockedBySubscription && (
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
+                onPress={() => guardedNavigate('CoursePlayer', { course }, {
+                  requireAuth: true,
+                  contentType: 'course',
+                  contentId: course.course_id,
+                  showAlert: true
+                })}
+              >
+                <Text style={[styles.actionButtonText, { color: theme.colors.background }]}>
+                  Access Now
+                </Text>
+                <Icon 
+                  name="lock-open" 
+                  size={18} 
+                  color={theme.colors.background} 
+                />
+              </TouchableOpacity>
+            )}
+           
+           {isMyCourse && (
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
+                onPress={() => guardedNavigate('CoursePlayer', { course }, {
+                  requireAuth: true,
+                  contentType: 'course',
+                  contentId: course.course_id,
+                  showAlert: true
+                })}
+              >
+                <Text style={[styles.actionButtonText, { color: theme.colors.background }]}>
+                  {isSeriesCourse ? 'Watch Series' : 'Continue Learning'}
+                </Text>
+                <Icon 
+                  name={isSeriesCourse ? "playlist-play" : "play-arrow"} 
+                  size={18} 
+                  color={theme.colors.background} 
+                />
+              </TouchableOpacity>
+            )}
         </View>
       </GlassCard>
     );
@@ -496,6 +562,18 @@ const CoursesScreen: React.FC = () => {
           : `${displayedCourses.length} course${displayedCourses.length !== 1 ? 's' : ''} to explore`
         }
       </Text>
+      
+      {/* Subscription Status */}
+      {isAuthenticated && (
+        <SubscriptionStatus 
+          showDetails={true}
+          onUpgradePress={() => {
+            // Navigate to subscription screen or show upgrade modal
+            console.log('Navigate to subscription upgrade');
+          }}
+          style={{ marginTop: 12 }}
+        />
+      )}
     </View>
   );
 

@@ -25,7 +25,7 @@ interface ProfileUpdateModalProps {
 const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClose }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
-  const { user, updateLoading } = useSelector((state: RootState) => state.user);
+  const { profile: user, updateLoading } = useSelector((state: RootState) => state.user);
   const { showDialog, DialogComponent } = useCustomDialog();
 
   const [firstName, setFirstName] = useState(user?.first_name || '');
@@ -129,13 +129,16 @@ const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClos
           title: 'Success',
           message: message,
           type: 'success',
-          onConfirm: () => {
-            // Clear password fields for security
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            onClose();
-          }
+          buttons: [{
+            text: 'OK',
+            onPress: () => {
+              // Clear password fields for security
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              onClose();
+            }
+          }]
         });
       }
     } catch (error) {
@@ -281,14 +284,14 @@ const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClos
 const styles = {
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     padding: 20,
   },
   modal: {
-    width: '100%',
+    width: '100%' as const,
     maxWidth: 400,
-    maxHeight: '90%',
+    maxHeight: '90%' as const,
     borderRadius: 20,
     padding: 0,
     elevation: 10,
@@ -300,7 +303,7 @@ const styles = {
   header: {
     padding: 24,
     paddingBottom: 16,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     position: 'relative' as const,
   },
   closeButton: {
@@ -312,7 +315,7 @@ const styles = {
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     marginBottom: 8,
     textAlign: 'center' as const,
   },
@@ -330,7 +333,7 @@ const styles = {
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 8,
   },
   input: {
@@ -348,7 +351,7 @@ const styles = {
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 16,
   },
   buttonContainer: {

@@ -102,74 +102,74 @@ export const lightTheme = {
     // Headings
     h1: {
       fontSize: 32,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       lineHeight: 40,
       letterSpacing: -0.5,
     },
     h2: {
       fontSize: 28,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       lineHeight: 36,
       letterSpacing: -0.3,
     },
     h3: {
       fontSize: 24,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 32,
       letterSpacing: -0.2,
     },
     h4: {
       fontSize: 20,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 28,
       letterSpacing: -0.1,
     },
     h5: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 24,
     },
     
     // Body text
     body1: {
       fontSize: 16,
-      fontWeight: 'normal',
+      fontWeight: '400' as const,
       lineHeight: 24,
     },
     body2: {
       fontSize: 14,
-      fontWeight: 'normal',
+      fontWeight: '400' as const,
       lineHeight: 20,
     },
     body3: {
       fontSize: 12,
-      fontWeight: 'normal',
+      fontWeight: '400' as const,
       lineHeight: 16,
     },
     
     // Special text
     caption: {
       fontSize: 12,
-      fontWeight: 'normal',
+      fontWeight: '400' as const,
       lineHeight: 16,
     },
     overline: {
       fontSize: 10,
-      fontWeight: '500',
+      fontWeight: '500' as const,
       lineHeight: 12,
-      textTransform: 'uppercase',
+      textTransform: 'uppercase' as const,
       letterSpacing: 1,
     },
     
     // Buttons
     button: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 24,
     },
     buttonSmall: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 20,
     },
   },
@@ -304,4 +304,4 @@ export const darkTheme = {
 export type Theme = typeof lightTheme;
 export type ThemeColors = typeof lightTheme.colors;
 export type ThemeTypography = typeof lightTheme.typography;
-export type ThemeShadows = typeof lightTheme.shadows; 
+export type ThemeShadows = typeof lightTheme.shadows;

@@ -8,7 +8,7 @@ interface ThemedTextProps extends TextProps {
   variant?: keyof RootState['theme']['theme']['typography'];
   color?: 'primary' | 'secondary' | 'tertiary' | 'inverse' | 'success' | 'warning' | 'error' | 'info';
   weight?: 'normal' | 'medium' | 'semibold' | 'bold';
-  align?: 'left' | 'center' | 'right' | 'justify';
+  align?: 'left' | 'center' | 'right' | 'justify' | 'auto';
   style?: TextStyle;
 }
 
@@ -40,17 +40,17 @@ const ThemedText: React.FC<ThemedTextProps> = ({
 
     // Weight mapping
     const weightMap = {
-      normal: 'normal',
-      medium: '500',
-      semibold: '600',
-      bold: 'bold',
+      normal: 'normal' as const,
+      medium: '500' as const,
+      semibold: '600' as const,
+      bold: 'bold' as const,
     };
 
     return {
       ...baseStyle,
       color: colorMap[color],
       fontWeight: weight ? weightMap[weight] : baseStyle.fontWeight,
-      textAlign: align,
+      textAlign: align as 'left' | 'center' | 'right' | 'justify' | 'auto',
     };
   };
 
@@ -98,4 +98,4 @@ export const ButtonText: React.FC<Omit<ThemedTextProps, 'variant'>> = (props) =>
   <ThemedText variant="button" {...props} />
 );
 
-export default ThemedText; 
+export default ThemedText;

@@ -18,7 +18,7 @@ export const fetchUserProfile = () => {
 
       const response = await userAPI.getProfile();
 
-      if (response.success) {
+      if (response.success && response.data) {
         dispatch(fetchUserProfileSuccess(response.data));
       } else {
         dispatch(fetchUserProfileFailure(response.error?.message || 'Failed to fetch profile'));
@@ -49,7 +49,7 @@ export const updateUserProfile = (userData: Partial<User>) => {
 
       const response = await userAPI.updateProfile(userData);
 
-      if (response.success) {
+      if (response.success && response.data) {
         dispatch(updateUserProfileSuccess(response.data));
       } else {
         dispatch(updateUserProfileFailure(response.error?.message || 'Failed to update profile'));

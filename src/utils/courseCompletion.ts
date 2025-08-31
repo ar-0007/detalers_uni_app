@@ -29,7 +29,7 @@ export const checkCourseCompletion = async (courseId: string): Promise<CourseCom
         const completedChapterDates = progressData
           .filter((chapter: any) => chapter.is_completed && chapter.completed_at)
           .map((chapter: any) => new Date(chapter.completed_at))
-          .sort((a, b) => b.getTime() - a.getTime()); // Sort by latest first
+          .sort((a: Date, b: Date) => b.getTime() - a.getTime()); // Sort by latest first
         
         if (completedChapterDates.length > 0) {
           completionDate = completedChapterDates[0].toISOString();

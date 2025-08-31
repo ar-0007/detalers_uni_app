@@ -22,6 +22,8 @@ import GlassCard from '../../components/common/GlassCard';
 import { useCustomDialog } from '../../hooks/useCustomDialog';
 import QuizCard from '../../components/QuizCard';
 import AssignmentCard from '../../components/AssignmentCard';
+import { useSubscription, useContentAccess } from '../../contexts/SubscriptionContext';
+import ContentAccessGuard from '../../components/common/ContentAccessGuard';
 // Certificate modal removed per UI update
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -47,6 +49,8 @@ const CoursePlayerScreen: React.FC = () => {
   const theme = useSelector((state: RootState) => state.theme.theme);
   const { isDarkMode } = useSelector((state: RootState) => state.theme);
   const { showDialog, DialogComponent } = useCustomDialog();
+  const { hasActiveSubscription, subscriptionStatus } = useSubscription();
+  const { checkCourseAccess } = useSubscription();
   
   const { course } = route.params;
   
@@ -425,17 +429,22 @@ const CoursePlayerScreen: React.FC = () => {
       
       {renderHeader()}
       
-      <ScrollView 
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
+      <ContentAccessGuard
+        contentId={course.course_id}
+        contentType="course"
       >
-        <View style={styles.seriesList}>
-         
-          {seriesParts.map((part, index) => renderSeriesPart(part, index))}
-        </View>
-      </ScrollView>
-      
-      {renderNavigationControls()}
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.seriesList}>
+           
+            {seriesParts.map((part, index) => renderSeriesPart(part, index))}
+          </View>
+        </ScrollView>
+        
+        {renderNavigationControls()}
+      </ContentAccessGuard>
       
       {/* Video Player Modal */}
       {showVideoPlayer && currentPart?.intro_video_url && (
