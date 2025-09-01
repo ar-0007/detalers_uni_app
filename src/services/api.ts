@@ -81,7 +81,31 @@ api.interceptors.response.use(
       await tokenStorage.removeToken();
       // You might want to redirect to login here
     }
-    return Promise.reject(error);
+    
+    // Transform HTTP errors into ApiResponse format for consistent error handling
+    if (error.response?.data) {
+      // If backend already returned proper error format, use it
+      const errorData = error.response.data;
+      if (errorData.success === false) {
+        // Return the error response in the expected format instead of throwing
+        return {
+          data: errorData
+        };
+      }
+    }
+    
+    // For network errors or unexpected errors, create a standardized error response
+    const standardizedError = {
+      data: {
+        success: false,
+        error: {
+          code: error.code || 'NETWORK_ERROR',
+          message: error.message || 'Network request failed'
+        }
+      }
+    };
+    
+    return standardizedError;
   }
 );
 
@@ -670,6 +694,33 @@ export interface MentorshipSlot {
   };
 }
 
+// Subscription Benefits Types
+export interface SubscriptionBenefit {
+  benefit_type: 'FREE_MENTORSHIP' | 'COURSE_ACCESS' | 'PRIORITY_SUPPORT';
+  monthly_limit: number;
+  used_count: number;
+  reset_date: string;
+}
+
+export interface BenefitsSummary {
+  user_id: string;
+  subscription_status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  subscription_type: string;
+  benefits: SubscriptionBenefit[];
+  next_reset_date: string;
+}
+
+export interface MentorshipEligibility {
+  is_eligible: boolean;
+  reason?: string;
+  remaining_free_bookings: number;
+  next_reset_date?: string;
+}
+
+export interface FreeMentorshipBookingRequest {
+  slot_id: string;
+}
+
 export interface MentorshipBooking {
   booking_id: string;
   slot_id: string;
@@ -682,6 +733,7 @@ export interface MentorshipBooking {
   customer_email: string;
   customer_phone?: string;
   meeting_link?: string;
+  is_free_subscription_benefit?: boolean;
 }
 
 export interface Instructor {
@@ -867,5 +919,26 @@ export const dashboardAPI = {
   },
 };
 
+
+// Subscription Benefits API functions
+export const subscriptionBenefitsAPI = {
+  // Get user's subscription benefits summary
+  getBenefitsSummary: async (): Promise<ApiResponse<BenefitsSummary>> => {
+    const response = await api.get('/subscription-benefits/summary');
+    return response.data;
+  },
+
+  // Check if user is eligible for free mentorship booking
+  checkMentorshipEligibility: async (): Promise<ApiResponse<MentorshipEligibility>> => {
+    const response = await api.get('/subscription-benefits/mentorship/eligibility');
+    return response.data;
+  },
+
+  // Create a free mentorship booking using subscription benefits
+  createFreeMentorshipBooking: async (bookingData: FreeMentorshipBookingRequest): Promise<ApiResponse<{ booking: MentorshipBooking; bookingId: string }>> => {
+    const response = await api.post('/subscription-benefits/mentorship/book-free', bookingData);
+    return response.data;
+  },
+};
 
 export default api;
