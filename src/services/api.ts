@@ -7,14 +7,14 @@ const getApiBaseUrl = () => {
   const isDevelopment = __DEV__;
   
   if (isDevelopment) {
-    // Android emulator - using your computer's IP address
-    return 'http://192.168.10.10:4000/api';
-    // Alternative IP: http://192.168.137.1:4000/api
-    // For iOS simulator, use: 'http://localhost:4000/api'
+    // Using production backend for development as well
+    return 'https://university-backend-1-28os.onrender.com/api';
+    // Alternative: Use local development server if available
+    // return 'http://192.168.10.10:4000/api';
   }
   
-  // Production URL (replace with your actual production URL)
-  return 'https://your-production-api.com/api';
+  // Production URL
+  return 'https://university-backend-1-28os.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
