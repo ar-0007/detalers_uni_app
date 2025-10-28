@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  StyleSheet,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -25,11 +26,11 @@ interface ProfileUpdateModalProps {
 const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClose }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
-  const { user, updateLoading } = useSelector((state: RootState) => state.user);
+  const { profile, updateLoading } = useSelector((state: RootState) => state.user);
   const { showDialog, DialogComponent } = useCustomDialog();
 
-  const [firstName, setFirstName] = useState(user?.first_name || '');
-  const [lastName, setLastName] = useState(user?.last_name || '');
+  const [firstName, setFirstName] = useState(profile?.firstName || '');
+  const [lastName, setLastName] = useState(profile?.lastName || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -127,15 +128,18 @@ const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClos
         
         showDialog({
           title: 'Success',
-          message: message,
+          message: 'Profile updated successfully!',
           type: 'success',
-          onConfirm: () => {
-            // Clear password fields for security
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            onClose();
-          }
+          buttons: [{
+            text: 'OK',
+            onPress: () => {
+              // Clear password fields for security
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              onClose();
+            }
+          }]
         });
       }
     } catch (error) {
@@ -143,7 +147,11 @@ const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClos
       showDialog({
         title: 'Error',
         message: 'Failed to update profile. Please try again.',
-        type: 'error'
+        type: 'error',
+        buttons: [{
+          text: 'OK',
+          onPress: () => {}
+        }]
       });
     }
   };
@@ -278,11 +286,11 @@ const ProfileUpdateModal: React.FC<ProfileUpdateModalProps> = ({ visible, onClos
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     padding: 20,
   },
   modal: {
@@ -300,7 +308,7 @@ const styles = {
   header: {
     padding: 24,
     paddingBottom: 16,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     position: 'relative' as const,
   },
   closeButton: {
@@ -312,7 +320,7 @@ const styles = {
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     marginBottom: 8,
     textAlign: 'center' as const,
   },
@@ -330,7 +338,7 @@ const styles = {
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 8,
   },
   input: {
@@ -348,7 +356,7 @@ const styles = {
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 16,
   },
   buttonContainer: {
@@ -359,6 +367,6 @@ const styles = {
     borderRadius: 12,
     minHeight: 52,
   },
-};
+});
 
 export default ProfileUpdateModal;

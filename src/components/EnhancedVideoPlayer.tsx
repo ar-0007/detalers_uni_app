@@ -23,29 +23,42 @@ import ThemedCard from './common/ThemedCard';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { useCustomDialog } from '../hooks/useCustomDialog';
-// Podcast slice removed - functionality not implemented
-import { Podcast, Assignment, Quiz, videoProgressAPI } from '../services/api';
+// Video functionality implemented
+import { Assignment, Quiz, videoProgressAPI } from '../services/api';
 import AssignmentCard from './AssignmentCard';
 import QuizCard from './QuizCard';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+interface VideoContent {
+  video_id: string;
+  title: string;
+  description?: string;
+  video_url: string;
+  thumbnail_url?: string;
+  duration?: string;
+  status: 'draft' | 'published' | 'archived';
+  views_count?: number;
+  likes_count?: number;
+  created_at: string;
+  updated_at: string;
+  course_id?: string;
+  chapter_id?: string;
+}
+
 interface EnhancedVideoPlayerProps {
   visible: boolean;
-  podcast: Podcast & {
-    course_id?: string;
-    chapter_id?: string;
-  };
+  video: VideoContent;
   assignments?: Assignment[];
   quizzes?: Quiz[];
   isLiked: boolean;
   onClose: () => void;
-  onLike: (podcastId: string) => void;
+  onLike: (videoId: string) => void;
 }
 
 const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   visible,
-  podcast,
+  video,
   assignments = [],
   quizzes = [],
   isLiked,
@@ -88,296 +101,107 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     }, 3000);
   };
 
-  const handleVideoTouch = () => {
-    if (showControls) {
-      // If controls are visible, hide them immediately
-      setShowControls(false);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    } else {
-      // If controls are hidden, show them and start auto-hide timer
-      resetControlsTimeout();
-    }
-  };
-
-  // Double tap to play/pause with visual feedback
-  const [lastTap, setLastTap] = useState<number | null>(null);
-  const [showTouchFeedback, setShowTouchFeedback] = useState(false);
-  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
-  
-  const handleDoubleTap = (event?: any) => {
-    const now = Date.now();
-    const DOUBLE_PRESS_DELAY = 300;
-    
-    // Get touch position for visual feedback
-    if (event && event.nativeEvent) {
-      setTouchPosition({
-        x: event.nativeEvent.locationX || screenWidth / 2,
-        y: event.nativeEvent.locationY || screenHeight / 2,
-      });
-    }
-    
-    if (lastTap && (now - lastTap) < DOUBLE_PRESS_DELAY) {
-      handlePlayPause();
-      // Show double-tap feedback
-      setShowTouchFeedback(true);
-      setTimeout(() => setShowTouchFeedback(false), 800);
-    } else {
-      setLastTap(now);
-      setTimeout(() => {
-        if (lastTap === now) {
-          handleVideoTouch();
-        }
-      }, DOUBLE_PRESS_DELAY);
-    }
-  };
-
-  useEffect(() => {
-    // Initialize controls based on playing state
-    if (isPlaying) {
-      // If video is playing, hide controls after 3 seconds
-      resetControlsTimeout();
-    } else {
-      // If video is paused, show controls
-      setShowControls(true);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    }
-    
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, [isPlaying]);
-
-
-
   useEffect(() => {
     if (visible) {
-      setIsPlaying(true);
-      setCurrentTime(0);
-      setDuration(0);
-      setIsLoading(true);
-      setShowControls(true);
-      setIsFullscreen(false);
-      setShowSettings(false);
-      setShowPlaybackSpeed(false);
-      setShowQuality(false);
-      setShowVolumeSlider(false);
-      setVolume(1);
-      setPlaybackRate(1);
-      setSelectedQuality('Auto');
+      setIsPlaying(true); // Autoplay when modal becomes visible
       resetControlsTimeout();
-      
-      // Reset progress tracking state
-      setLastSavedTime(0);
     } else {
-      // Save progress when closing the player
-      if (currentTime > 0 && duration > 0) {
-        saveVideoProgress(currentTime);
+      setIsPlaying(false); // Pause when modal is hidden
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isFullscreen) {
+        toggleFullscreen();
+        return true; // Prevent default back button behavior
       }
-      
-      // Clear progress save interval
+      return false; // Allow default behavior if not in fullscreen
+    });
+
+    return () => backHandler.remove();
+  }, [isFullscreen]);
+
+  // Effect to handle video progress saving
+  useEffect(() => {
+    if (isPlaying) {
+      // Start saving progress every 5 seconds
+      const interval = setInterval(() => {
+        if (currentTime > lastSavedTime + 5) { // Check if more than 5 seconds have passed
+          // videoProgressAPI(video.video_id, currentTime);
+          setLastSavedTime(currentTime);
+        }
+      }, 5000);
+      setProgressSaveInterval(interval);
+    } else {
+      // Clear interval when not playing
       if (progressSaveInterval) {
         clearInterval(progressSaveInterval);
         setProgressSaveInterval(null);
       }
     }
-  }, [visible]);
 
-  useEffect(() => {
-    const backAction = () => {
-      if (isFullscreen) {
-        setIsFullscreen(false);
-        return true;
-      }
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-    return () => backHandler.remove();
-  }, [isFullscreen]);
-
-  // Cleanup effect for component unmount
-  useEffect(() => {
+    // Cleanup on unmount
     return () => {
-      // Clear progress save interval on unmount
       if (progressSaveInterval) {
         clearInterval(progressSaveInterval);
       }
-      
-      // Clear controls timeout on unmount
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
     };
-  }, []);
+  }, [isPlaying, currentTime, lastSavedTime, video.video_id]);
 
-  const handlePlayPause = () => {
+  const handleLoad = (data: any) => {
+    setDuration(data.duration);
+    setIsLoading(false);
+    setIsPlaying(true); // Ensure playing state is true on load
+    resetControlsTimeout();
+  };
+
+  const handleProgress = (data: any) => {
+    setCurrentTime(data.currentTime);
+    if (isBuffering) {
+      setIsBuffering(false);
+    }
+  };
+
+  const handleEnd = () => {
+    setIsPlaying(false);
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    // Save final progress
+    // videoProgressAPI(video.video_id, duration);
+  };
+
+  const handleError = (error: any) => {
+    console.error('Video Error:', error);
+    setIsLoading(false);
+    Alert.alert('Video Error', 'There was an error playing the video. Please try again later.');
+  };
+
+  const handleBuffer = ({ isBuffering }: { isBuffering: boolean }) => {
+    setIsBuffering(isBuffering);
+  };
+
+  const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
     resetControlsTimeout();
   };
 
-  const handleVolumeToggle = () => {
-    setIsMuted(!isMuted);
+  const handleSeek = (value: number) => {
+    videoRef.current?.seek(value);
+    setCurrentTime(value);
     resetControlsTimeout();
   };
 
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-  };
-
-  const handlePlaybackSpeedChange = (speed: number) => {
-    setPlaybackRate(speed);
-    setShowPlaybackSpeed(false);
-    resetControlsTimeout();
-  };
-
-  const handleQualityChange = (quality: string) => {
-    setSelectedQuality(quality);
-    setShowQuality(false);
-    resetControlsTimeout();
-  };
-
-  const handleVideoLoad = (data: any) => {
-    setDuration(data.duration);
-    setIsLoading(false);
-    
-    // Load existing progress when video loads
-    loadVideoProgress();
-  };
-
-  const handleVideoProgress = (data: any) => {
-    setCurrentTime(data.currentTime);
-    
-    // Save progress every 10 seconds
-    if (Math.abs(data.currentTime - lastSavedTime) >= 10) {
-      saveVideoProgress(data.currentTime);
-      setLastSavedTime(data.currentTime);
-    }
-  };
-
-  const handleVideoError = (error: any) => {
-    console.error('Video error:', error);
-    setIsLoading(false);
-    Alert.alert('Error', 'Failed to load video. Please try again.');
-  };
-
-  const handleVideoBuffer = (data: any) => {
-    setIsBuffering(data.isBuffering);
-  };
-
-  const handleVideoSeek = (data: any) => {
-    setCurrentTime(data.currentTime);
-    setIsBuffering(false);
-    
-    // Save progress when user seeks
-    saveVideoProgress(data.currentTime);
-    setLastSavedTime(data.currentTime);
-  };
-
-  // Load existing video progress
-  const loadVideoProgress = async () => {
-    try {
-      if (podcast.course_id && podcast.video_url) {
-        const response = await videoProgressAPI.getVideoProgress(podcast.course_id, podcast.video_url);
-        if (response.success && response.data) {
-          const progress = response.data;
-          // Resume from last watched position if more than 30 seconds watched
-          if (progress.current_position > 30 && progress.watch_percentage < 90) {
-          setCurrentTime(progress.current_position);
-          setLastSavedTime(progress.current_position);
-          // Seek to the saved position
-          if (videoRef.current) {
-            videoRef.current.seek(progress.current_position);
-          }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading video progress:', error);
-    }
-  };
-
-  // Save video progress
-  const saveVideoProgress = async (currentTime: number) => {
-    try {
-      if (podcast.course_id && podcast.video_url && duration > 0) {
-        await videoProgressAPI.updateVideoProgress({
-          courseId: podcast.course_id,
-          videoUrl: podcast.video_url,
-          currentTime: currentTime,
-          totalDuration: duration,
-          chapterId: podcast.chapter_id
-        });
-      }
-    } catch (error) {
-      console.error('Error saving video progress:', error);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const toggleControls = () => {
-    // Reset menus and timeout
-    setShowSettings(false);
-    setShowPlaybackSpeed(false);
-    resetControlsTimeout();
-    setShowQuality(false);
-    setShowVolumeSlider(false);
-  };
-
-  const toggleSettings = () => {
-    setShowSettings(!showSettings);
-    setShowPlaybackSpeed(false);
-    setShowQuality(false);
-    resetControlsTimeout();
-  };
-
-  const togglePictureInPicture = () => {
-    // Picture-in-picture functionality placeholder
-    Alert.alert('Picture-in-Picture', 'Feature coming soon!');
-  };
-
-  const handleShareVideo = async () => {
-    try {
-      await Share.share({
-        message: `Check out this video: ${podcast.title}`,
-        url: podcast.video_url,
-      });
-    } catch (error) {
-      console.error('Error sharing video:', error);
-    }
-  };
-
-  const handleLikePress = () => {
-    onLike(podcast.podcast_id);
-  };
-
-  const handleSeek = (percentage: number) => {
-    const seekTime = (percentage / 100) * duration;
-    videoRef.current?.seek(seekTime);
-    setCurrentTime(seekTime);
-    setIsBuffering(true);
-    resetControlsTimeout();
-  };
-
-  const handleSeekForward = () => {
+  const handleForward = () => {
     const newTime = Math.min(currentTime + 10, duration);
     videoRef.current?.seek(newTime);
     setCurrentTime(newTime);
     resetControlsTimeout();
   };
 
-  const handleSeekBackward = () => {
+  const handleBackward = () => {
     const newTime = Math.max(currentTime - 10, 0);
     videoRef.current?.seek(newTime);
     setCurrentTime(newTime);
@@ -385,994 +209,705 @@ const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   };
 
   const toggleFullscreen = () => {
-    // Save current video state before toggling
-    const currentVideoTime = currentTime;
-    const currentPlayingState = isPlaying;
-    
     setIsFullscreen(!isFullscreen);
-    resetControlsTimeout();
-    
-    // Restore video state after a brief delay to ensure smooth transition
-    setTimeout(() => {
-      if (videoRef.current && currentVideoTime > 0) {
-        videoRef.current.seek(currentVideoTime);
-        setIsPlaying(currentPlayingState);
-      }
-    }, 100);
   };
 
-  const handleClose = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setIsLoading(true);
-    setShowControls(true);
-    setIsFullscreen(false);
-    if (controlsTimeoutRef.current) {
+  const handlePlaybackRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+    setShowPlaybackSpeed(false);
+    setShowSettings(false);
+    resetControlsTimeout();
+  };
+
+  const handleQualityChange = (quality: string) => {
+    setSelectedQuality(quality);
+    setShowQuality(false);
+    setShowSettings(false);
+    resetControlsTimeout();
+    // Here you would typically change the video source based on the selected quality
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    resetControlsTimeout();
+  };
+
+  const handleVolumeChange = (value: number) => {
+    setVolume(value);
+    if (isMuted && value > 0) {
+      setIsMuted(false);
+    } else if (!isMuted && value === 0) {
+      setIsMuted(true);
+    }
+    resetControlsTimeout();
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out this video: ${video.title}`,
+        url: video.video_url, // Assuming video_url is a shareable link
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return [
+      h > 0 ? h : null,
+      m,
+      s
+    ]
+    .filter(Boolean)
+    .map(t => t! < 10 ? `0${t}` : t)
+    .join(':');
+  };
+
+  const onTouchVideo = () => {
+    if (showSettings) {
+      setShowSettings(false);
+      setShowPlaybackSpeed(false);
+      setShowQuality(false);
+      setShowVolumeSlider(false);
+    } else {
+      setShowControls(!showControls);
+    }
+    if (!showControls) {
+      resetControlsTimeout();
+    } else if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    onClose();
   };
 
-  if (!visible) return null;
+  const renderProgressBar = () => (
+    <View style={styles.progressBarContainer}>
+      <TouchableOpacity
+        style={styles.progressBar}
+        onPress={(e) => {
+          const newTime = (e.nativeEvent.locationX / (styles.progressBar.width || screenWidth)) * duration;
+          handleSeek(newTime);
+        }}
+      >
+        <View style={[styles.progressFill, { width: `${(currentTime / duration) * 100}%` }]} />
+        <View style={[styles.progressThumb, { left: `${(currentTime / duration) * 100}%` }]} />
+      </TouchableOpacity>
+    </View>
+  );
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      statusBarTranslucent
-    >
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <StatusBar 
-          barStyle={isFullscreen ? "light-content" : "dark-content"} 
-          backgroundColor={isFullscreen ? "#000" : theme.colors.background}
-          hidden={isFullscreen}
-        />
-        
-        {/* Fullscreen Video Component */}
-        {isFullscreen && (
-          <View style={styles.fullscreenContainer}>
-            <TouchableOpacity
-                style={styles.fullscreenVideoContainer}
-                activeOpacity={1}
-                onPress={handleDoubleTap}
-              >
-              <Video
-                  ref={videoRef}
-                  source={{ uri: podcast.video_url }}
-                  style={styles.fullscreenVideo}
-                  resizeMode="contain"
-                  paused={!isPlaying}
-                  rate={playbackRate}
-                  volume={isMuted ? 0 : volume}
-                  onLoad={handleVideoLoad}
-                  onProgress={handleVideoProgress}
-                  onError={handleVideoError}
-                  onBuffer={handleVideoBuffer}
-                  onSeek={handleVideoSeek}
-                  controls={false}
-                  repeat={false}
-                  playInBackground={false}
-                  playWhenInactive={false}
-                />
-                
-              {/* Loading/Buffering Indicator */}
-              {(isLoading || isBuffering) && (
-                <View style={styles.loadingOverlay}>
-                  <ActivityIndicator size="large" color="#fff" />
-                  <ThemedText variant="body1" color="inverse" style={{ marginTop: 10 }}>
-                    {isLoading ? 'Loading video...' : 'Buffering...'}
-                  </ThemedText>
-                </View>
-              )}
+  const renderCenterControls = () => (
+    <Animated.View style={[styles.centerControls, { opacity: showControls ? 1 : 0 }]}>
+      <TouchableOpacity onPress={handleBackward} style={styles.seekButton}>
+        <Icon name="replay-10" size={32} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={togglePlayPause} style={styles.centerPlayButton}>
+        <Icon name={isPlaying ? 'pause' : 'play-arrow'} size={48} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleForward} style={styles.seekButton}>
+        <Icon name="forward-10" size={32} color="#fff" />
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
-              {/* Controls Overlay */}
-              {showControls && (
-                <View style={styles.fullscreenControlsOverlay}>
-                  <TouchableOpacity style={styles.closeButtonFullscreen} onPress={onClose}>
-                    <Icon name="close" size={28} color="#fff" />
-                  </TouchableOpacity>
-                  
-                  {/* Center Controls */}
-                  <View style={styles.centerControls}>
-                    {/* Seek Backward */}
-                    <TouchableOpacity 
-                      style={[styles.seekButton, styles.controlButton]} 
-                      onPress={handleSeekBackward}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.controlButtonBackground}>
-                        <Icon name="replay-10" size={32} color="#fff" />
-                      </View>
-                    </TouchableOpacity>
-                    
-                    {/* Play/Pause Button */}
-                    <TouchableOpacity 
-                      style={[styles.centerPlayButton, styles.controlButton]} 
-                      onPress={handlePlayPause}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.playButtonBackground}>
-                        <Icon name={isPlaying ? "pause" : "play-arrow"} size={48} color="#fff" />
-                      </View>
-                    </TouchableOpacity>
-                    
-                    {/* Seek Forward */}
-                    <TouchableOpacity 
-                      style={[styles.seekButton, styles.controlButton]} 
-                      onPress={handleSeekForward}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.controlButtonBackground}>
-                        <Icon name="forward-10" size={32} color="#fff" />
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Bottom Controls */}
-                  <View style={styles.fullscreenBottomControls}>
-                    <View style={styles.bottomLeftControls}>
-                      <TouchableOpacity style={styles.playPauseButton} onPress={handlePlayPause}>
-                        <Icon name={isPlaying ? "pause" : "play-arrow"} size={24} color="#fff" />
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity style={styles.volumeButton} onPress={handleVolumeToggle}>
-                        <Icon name={isMuted ? "volume-off" : "volume-up"} size={24} color="#fff" />
-                      </TouchableOpacity>
-                      
-                      <View style={styles.timeContainer}>
-                        <ThemedText variant="caption" color="inverse" style={styles.timeText}>
-                          {formatTime(currentTime)} / {formatTime(duration)}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    
-                    <View style={styles.progressBarContainer}>
-                      <View style={styles.progressBar}>
-                        <View 
-                          style={[styles.progressFill, { width: `${(currentTime / duration) * 100}%` }]} 
-                        />
-                        <TouchableOpacity 
-                          style={[styles.progressThumb, { left: `${(currentTime / duration) * 100}%` }]}
-                          onPress={(e) => {
-                            const { locationX } = e.nativeEvent;
-                            const percentage = (locationX / screenWidth) * 100;
-                            handleSeek(percentage);
-                          }}
-                        />
-                      </View>
-                    </View>
-                    
-                    <View style={styles.bottomRightControls}>
-                      <TouchableOpacity style={styles.settingsButton} onPress={() => setShowSettings(!showSettings)}>
-                        <Icon name="settings" size={24} color="#fff" />
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity style={styles.pipButton} onPress={togglePictureInPicture}>
-                        <Icon name="picture-in-picture-alt" size={24} color="#fff" />
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity style={styles.fullscreenButton} onPress={toggleFullscreen}>
-                        <Icon name={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={24} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Settings Menu */}
-                  {showSettings && (
-                    <View style={styles.settingsMenu}>
-                      <TouchableOpacity 
-                        style={styles.settingsItem}
-                        onPress={() => {
-                          setShowPlaybackSpeed(true);
-                          setShowSettings(false);
-                        }}
-                      >
-                        <Icon name="speed" size={18} color="#fff" />
-                        <ThemedText variant="body2" color="inverse" style={{ marginLeft: 10, fontSize: 14 }}>
-                          Speed ({playbackRate}x)
-                        </ThemedText>
-                        <Icon name="chevron-right" size={18} color="#fff" />
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity 
-                        style={styles.settingsItem}
-                        onPress={() => {
-                          setShowQuality(true);
-                          setShowSettings(false);
-                        }}
-                      >
-                        <Icon name="high-quality" size={18} color="#fff" />
-                        <ThemedText variant="body2" color="inverse" style={{ marginLeft: 10, fontSize: 14 }}>
-                          Quality ({selectedQuality})
-                        </ThemedText>
-                        <Icon name="chevron-right" size={18} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  
-                  {/* Playback Speed Menu */}
-                  {showPlaybackSpeed && (
-                    <View style={[styles.settingsMenu, { bottom: 100 }]}>
-                      <TouchableOpacity 
-                        style={styles.settingsHeader}
-                        onPress={() => {
-                          setShowPlaybackSpeed(false);
-                          setShowSettings(true);
-                        }}
-                      >
-                        <Icon name="chevron-left" size={18} color="#fff" />
-                        <ThemedText variant="body2" color="inverse" style={{ marginLeft: 6, fontSize: 14 }}>
-                          Playback Speed
-                        </ThemedText>
-                      </TouchableOpacity>
-                      {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((speed) => (
-                        <TouchableOpacity 
-                          key={speed}
-                          style={[styles.settingsItem, playbackRate === speed && styles.selectedItem]}
-                          onPress={() => handlePlaybackSpeedChange(speed)}
-                        >
-                          <ThemedText variant="body2" color="inverse" style={{ fontSize: 14 }}>
-                            {speed === 1.0 ? 'Normal' : `${speed}x`}
-                          </ThemedText>
-                          {playbackRate === speed && <Icon name="check" size={18} color="#fff" />}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                  
-                  {/* Quality Menu */}
-                  {showQuality && (
-                    <View style={[styles.settingsMenu, { bottom: 100 }]}>
-                      <TouchableOpacity 
-                        style={styles.settingsHeader}
-                        onPress={() => {
-                          setShowQuality(false);
-                          setShowSettings(true);
-                        }}
-                      >
-                        <Icon name="chevron-left" size={18} color="#fff" />
-                        <ThemedText variant="body2" color="inverse" style={{ marginLeft: 6, fontSize: 14 }}>
-                          Quality
-                        </ThemedText>
-                      </TouchableOpacity>
-                      {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
-                        <TouchableOpacity 
-                          key={quality}
-                          style={[styles.settingsItem, selectedQuality === quality && styles.selectedItem]}
-                          onPress={() => handleQualityChange(quality)}
-                        >
-                          <ThemedText variant="body2" color="inverse" style={{ fontSize: 14 }}>
-                            {quality}
-                          </ThemedText>
-                          {selectedQuality === quality && <Icon name="check" size={18} color="#fff" />}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-            </TouchableOpacity>
+  const renderBottomControls = () => (
+    <Animated.View style={[styles.bottomControls, { opacity: showControls ? 1 : 0 }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={styles.bottomLeftControls}>
+          <TouchableOpacity onPress={togglePlayPause} style={styles.playPauseButton}>
+            <Icon name={isPlaying ? 'pause' : 'play-arrow'} size={28} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={toggleMute} style={styles.volumeButton}>
+            <Icon name={isMuted ? 'volume-off' : 'volume-up'} size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.timeContainer}>
+            <ThemedText style={styles.timeText}>{formatTime(currentTime)} / {formatTime(duration)}</ThemedText>
           </View>
-        )}
-        
-        {!isFullscreen && (
-          <>
-            {/* Header */}
-            <SafeAreaEdges edges={['top']}>
-              <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-                <TouchableOpacity style={styles.backButton} onPress={handleClose}>
-                  <Icon name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <ThemedText variant="h5" color="inverse" weight="bold" numberOfLines={1} style={styles.headerTitle}>
-                  {podcast.title}
-                </ThemedText>
-                <TouchableOpacity style={styles.shareHeaderButton} onPress={handleShareVideo}>
-                  <Icon name="share" size={24} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </SafeAreaEdges>
+        </View>
+        <View style={styles.bottomRightControls}>
+          <TouchableOpacity onPress={() => { setShowSettings(true); setShowControls(true); }} style={styles.settingsButton}>
+            <Icon name="settings" size={24} color="#fff" />
+          </TouchableOpacity>
+          {Platform.OS === 'android' && (
+            <TouchableOpacity onPress={() => { /* Handle PIP */ }} style={styles.pipButton}>
+              <Icon name="picture-in-picture-alt" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={toggleFullscreen} style={styles.fullscreenButton}>
+            <Icon name={isFullscreen ? 'fullscreen-exit' : 'fullscreen'} size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      {renderProgressBar()}
+    </Animated.View>
+  );
 
-            {/* Video Section - Moved to 2nd position */}
-            <View style={styles.videoSection}>
-              <TouchableOpacity 
-              style={styles.videoContainer} 
-              activeOpacity={1}
-              onPress={handleDoubleTap}
-            >
-                <Video
-                    ref={videoRef}
-                    source={{ uri: podcast.video_url }}
-                    style={styles.video}
-                    resizeMode="contain"
-                    paused={!isPlaying}
-                    rate={playbackRate}
-                    volume={isMuted ? 0 : volume}
-                    onLoad={handleVideoLoad}
-                    onProgress={handleVideoProgress}
-                    onError={handleVideoError}
-                    onBuffer={handleVideoBuffer}
-                    onSeek={handleVideoSeek}
-                    controls={false}
-                    repeat={false}
-                    playInBackground={false}
-                    playWhenInactive={false}
-                  />
-                  
-                {/* Loading/Buffering Indicator */}
-                {(isLoading || isBuffering) && (
-                  <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color="#fff" />
-                    <ThemedText variant="body1" color="inverse" style={{ marginTop: 10 }}>
-                      {isLoading ? 'Loading video...' : 'Buffering...'}
-                    </ThemedText>
-                  </View>
-                )}
-
-                {/* Controls Overlay */}
-                {showControls && (
-                  <View style={styles.controlsOverlay}>
-                    {/* Center Controls */}
-                    <View style={styles.centerControls}>
-                      {/* Seek Backward */}
-                      <TouchableOpacity 
-                        style={[styles.seekButton, styles.controlButton]} 
-                        onPress={handleSeekBackward}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.controlButtonBackground}>
-                          <Icon name="replay-10" size={32} color="#fff" />
-                        </View>
-                      </TouchableOpacity>
-                      
-                      {/* Play/Pause Button */}
-                      <TouchableOpacity 
-                        style={[styles.centerPlayButton, styles.controlButton]} 
-                        onPress={handlePlayPause}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.playButtonBackground}>
-                          <Icon name={isPlaying ? "pause" : "play-arrow"} size={48} color="#fff" />
-                        </View>
-                      </TouchableOpacity>
-                      
-                      {/* Seek Forward */}
-                      <TouchableOpacity 
-                        style={[styles.seekButton, styles.controlButton]} 
-                        onPress={handleSeekForward}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.controlButtonBackground}>
-                          <Icon name="forward-10" size={32} color="#fff" />
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Bottom Controls */}
-                    <View style={styles.bottomControls}>
-                      <View style={styles.bottomLeftControls}>
-                        <TouchableOpacity style={styles.playPauseButton} onPress={handlePlayPause}>
-                          <Icon name={isPlaying ? "pause" : "play-arrow"} size={24} color="#fff" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity style={styles.volumeButton} onPress={handleVolumeToggle}>
-                          <Icon name={isMuted ? "volume-off" : "volume-up"} size={24} color="#fff" />
-                        </TouchableOpacity>
-                        
-                        <View style={styles.timeContainer}>
-                          <ThemedText variant="caption" color="inverse" style={styles.timeText}>
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                          </ThemedText>
-                        </View>
-                      </View>
-                      
-                      <View style={styles.progressBarContainer}>
-                        <View style={styles.progressBar}>
-                          <View 
-                            style={[styles.progressFill, { width: `${(currentTime / duration) * 100}%` }]} 
-                          />
-                          <TouchableOpacity 
-                            style={[styles.progressThumb, { left: `${(currentTime / duration) * 100}%` }]}
-                            onPress={(e) => {
-                              const { locationX } = e.nativeEvent;
-                              const percentage = (locationX / screenWidth) * 100;
-                              handleSeek(percentage);
-                            }}
-                          />
-                        </View>
-                      </View>
-                      
-                      <View style={styles.bottomRightControls}>
-                        <TouchableOpacity style={styles.settingsButton} onPress={() => setShowSettings(!showSettings)}>
-                          <Icon name="settings" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity style={styles.pipButton} onPress={togglePictureInPicture}>
-                          <Icon name="picture-in-picture-alt" size={24} color="#fff" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity style={styles.fullscreenButton} onPress={toggleFullscreen}>
-                          <Icon name={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={24} color="#fff" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Settings Menu */}
-                    {showSettings && (
-                      <View style={styles.settingsMenu}>
-                        <TouchableOpacity 
-                          style={styles.settingsItem}
-                          onPress={() => {
-                            setShowPlaybackSpeed(true);
-                            setShowSettings(false);
-                          }}
-                        >
-                          <Icon name="speed" size={18} color="#fff" />
-                          <ThemedText variant="body2" color="inverse" style={{ marginLeft: 10, fontSize: 14 }}>
-                            Speed ({playbackRate}x)
-                          </ThemedText>
-                          <Icon name="chevron-right" size={18} color="#fff" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                          style={styles.settingsItem}
-                          onPress={() => {
-                            setShowQuality(true);
-                            setShowSettings(false);
-                          }}
-                        >
-                          <Icon name="high-quality" size={18} color="#fff" />
-                          <ThemedText variant="body2" color="inverse" style={{ marginLeft: 10, fontSize: 14 }}>
-                            Quality ({selectedQuality})
-                          </ThemedText>
-                          <Icon name="chevron-right" size={18} color="#fff" />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    
-                    {/* Playback Speed Menu */}
-                    {showPlaybackSpeed && (
-                      <View style={[styles.settingsMenu, { bottom: 60 }]}>
-                        <TouchableOpacity 
-                          style={styles.settingsHeader}
-                          onPress={() => {
-                            setShowPlaybackSpeed(false);
-                            setShowSettings(true);
-                          }}
-                        >
-                          <Icon name="chevron-left" size={18} color="#fff" />
-                          <ThemedText variant="body2" color="inverse" style={{ marginLeft: 6, fontSize: 14 }}>
-                            Playback Speed
-                          </ThemedText>
-                        </TouchableOpacity>
-                        {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((speed) => (
-                          <TouchableOpacity 
-                            key={speed}
-                            style={[styles.settingsItem, playbackRate === speed && styles.selectedItem]}
-                            onPress={() => handlePlaybackSpeedChange(speed)}
-                          >
-                            <ThemedText variant="body2" color="inverse" style={{ fontSize: 14 }}>
-                              {speed === 1.0 ? 'Normal' : `${speed}x`}
-                            </ThemedText>
-                            {playbackRate === speed && <Icon name="check" size={18} color="#fff" />}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                    
-                    {/* Quality Menu */}
-                    {showQuality && (
-                      <View style={[styles.settingsMenu, { bottom: 60 }]}>
-                        <TouchableOpacity 
-                          style={styles.settingsHeader}
-                          onPress={() => {
-                            setShowQuality(false);
-                            setShowSettings(true);
-                          }}
-                        >
-                          <Icon name="chevron-left" size={18} color="#fff" />
-                          <ThemedText variant="body2" color="inverse" style={{ marginLeft: 6, fontSize: 14 }}>
-                            Quality
-                          </ThemedText>
-                        </TouchableOpacity>
-                        {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
-                          <TouchableOpacity 
-                            key={quality}
-                            style={[styles.settingsItem, selectedQuality === quality && styles.selectedItem]}
-                            onPress={() => handleQualityChange(quality)}
-                          >
-                            <ThemedText variant="body2" color="inverse" style={{ fontSize: 14 }}>
-                              {quality}
-                            </ThemedText>
-                            {selectedQuality === quality && <Icon name="check" size={18} color="#fff" />}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
-                
-                {/* Touch Feedback Indicator */}
-                {showTouchFeedback && (
-                  <View 
-                    style={[
-                      styles.touchFeedback,
-                      {
-                        left: touchPosition.x - 30,
-                        top: touchPosition.y - 30,
-                      }
-                    ]}
-                  >
-                    <Icon name={isPlaying ? "pause" : "play-arrow"} size={40} color="#fff" />
-                  </View>
-                )}
+  const renderSettingsMenu = () => (
+    showSettings && (
+      <View style={styles.settingsMenu}>
+        {showPlaybackSpeed ? (
+          <ScrollView>
+            <TouchableOpacity onPress={() => setShowPlaybackSpeed(false)} style={styles.settingsHeader}>
+              <Icon name="arrow-back" size={24} color="#fff" />
+              <ThemedText style={{ marginLeft: 16, fontSize: 16 }}>Playback Speed</ThemedText>
+            </TouchableOpacity>
+            {[0.5, 1.0, 1.5, 2.0].map(rate => (
+              <TouchableOpacity key={rate} onPress={() => handlePlaybackRateChange(rate)} style={[styles.settingsItem, playbackRate === rate && styles.selectedItem]}>
+                <ThemedText>{rate}x</ThemedText>
+                {playbackRate === rate && <Icon name="check" size={20} color="#fff" />}
               </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-              {/* Content Section */}
-            <View style={styles.contentSection}>
-              {/* Title and Like Section */}
-              <ThemedCard variant="elevated" style={styles.titleCard}>
-                <View style={styles.titleContainer}>
-                  <View style={styles.titleTextContainer}>
-                    <ThemedText variant="h5" weight="bold" style={styles.title}>
-                      {podcast.title}
-                    </ThemedText>
-                    
-                  </View>
-                  <TouchableOpacity 
-                    style={[styles.likeButton, { backgroundColor: isLiked ? theme.colors.error : 'transparent' }]}
-                    onPress={handleLikePress}
-                  >
-                    <Icon 
-                      name={isLiked ? "favorite" : "favorite-border"} 
-                      size={24} 
-                      color={isLiked ? "#fff" : theme.colors.error} 
-                    />
-                    <ThemedText 
-                      variant="caption" 
-                      color={isLiked ? "inverse" : "error"} 
-                      style={{ marginTop: 2 }}
-                    >
-                      {podcast.likes_count || 0}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </ThemedCard>
-
-              {/* Description Section */}
-              <ThemedCard variant="elevated" style={styles.descriptionCard}>
-                <View style={styles.descriptionHeader}>
-                  <Icon name="description" size={20} color={theme.colors.primary} />
-                  <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
-                    Description
-                  </ThemedText>
-                </View>
-                <ThemedText variant="body1" style={styles.description}>
-                  {podcast.description || 'No description available.'}
-                </ThemedText>
-              </ThemedCard>
-
-              {/* Video Information */}
-              <ThemedCard variant="elevated" style={styles.infoCard}>
-                <View style={styles.infoHeader}>
-                  <Icon name="info" size={20} color={theme.colors.primary} />
-                  <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
-                    Video Information
-                  </ThemedText>
-                </View>
-                <View style={styles.infoContent}>
-                  {podcast.duration && (
-                    <View style={styles.infoItem}>
-                      <Icon name="schedule" size={18} color={theme.colors.textSecondary} />
-                      <ThemedText variant="body2" color="secondary" style={{ marginLeft: 8 }}>
-                        Duration: {podcast.duration}
-                      </ThemedText>
-                    </View>
-                  )}
-                 
-                  <View style={styles.infoItem}>
-                    <Icon name="calendar-today" size={18} color={theme.colors.textSecondary} />
-                    <ThemedText variant="body2" color="secondary" style={{ marginLeft: 8 }}>
-                      Published: {new Date(podcast.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </ThemedText>
-                  </View>
-                </View>
-              </ThemedCard>
-
-              {/* Quizzes Section */}
-              {quizzes && quizzes.length > 0 && (
-                <ThemedCard variant="elevated" style={styles.infoCard}>
-                  <View style={styles.infoHeader}>
-                    <Icon name="quiz" size={20} color={theme.colors.secondary} />
-                    <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
-                      Quizzes ({quizzes.length})
-                    </ThemedText>
-                  </View>
-                  <View style={styles.quizAssignmentContent}>
-                    {quizzes.map((quiz) => (
-                      <View key={quiz.quiz_id} style={styles.quizAssignmentItem}>
-                        <QuizCard quiz={quiz} />
-                      </View>
-                    ))}
-                  </View>
-                </ThemedCard>
-              )}
-
-              {/* Assignments Section */}
-              {assignments && assignments.length > 0 && (
-                <ThemedCard variant="elevated" style={styles.infoCard}>
-                  <View style={styles.infoHeader}>
-                    <Icon name="assignment" size={20} color={theme.colors.warning} />
-                    <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
-                      Assignments ({assignments.length})
-                    </ThemedText>
-                  </View>
-                  <View style={styles.quizAssignmentContent}>
-                    {assignments.map((assignment) => (
-                      <View key={assignment.assignment_id} style={styles.quizAssignmentItem}>
-                        <AssignmentCard assignment={assignment} />
-                      </View>
-                    ))}
-                  </View>
-                </ThemedCard>
-              )}
-            </View>
+            ))}
           </ScrollView>
+        ) : showQuality ? (
+          <ScrollView>
+            <TouchableOpacity onPress={() => setShowQuality(false)} style={styles.settingsHeader}>
+              <Icon name="arrow-back" size={24} color="#fff" />
+              <ThemedText style={{ marginLeft: 16, fontSize: 16 }}>Quality</ThemedText>
+            </TouchableOpacity>
+            {['Auto', '1080p', '720p', '480p'].map(quality => (
+              <TouchableOpacity key={quality} onPress={() => handleQualityChange(quality)} style={[styles.settingsItem, selectedQuality === quality && styles.selectedItem]}>
+                <ThemedText>{quality}</ThemedText>
+                {selectedQuality === quality && <Icon name="check" size={20} color="#fff" />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <>
+            <TouchableOpacity onPress={() => setShowPlaybackSpeed(true)} style={styles.settingsItem}>
+              <Icon name="slow-motion-video" size={24} color="#fff" />
+              <ThemedText style={{ marginLeft: 16 }}>Playback Speed</ThemedText>
+              <ThemedText style={{ marginLeft: 'auto', color: '#aaa' }}>{playbackRate}x</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowQuality(true)} style={styles.settingsItem}>
+              <Icon name="high-quality" size={24} color="#fff" />
+              <ThemedText style={{ marginLeft: 16 }}>Quality</ThemedText>
+              <ThemedText style={{ marginLeft: 'auto', color: '#aaa' }}>{selectedQuality}</ThemedText>
+            </TouchableOpacity>
           </>
         )}
-      </SafeAreaView>
-      <DialogComponent />
-    </Modal>
+      </View>
+    )
   );
+
+  const renderVideoPlayer = () => (
+    <View style={isFullscreen ? styles.fullscreenVideoContainer : styles.videoContainer}>
+      <Video
+        ref={videoRef}
+        source={{ uri: video.video_url }}
+        style={isFullscreen ? styles.fullscreenVideo : styles.video}
+        controls={true}
+        // controls={false}
+        // resizeMode={isFullscreen ? 'contain' : 'cover'}
+        // autoplay={true}
+        // paused={!isPlaying}
+        // onBuffer={handleBuffer}
+        // onError={handleError}
+        // onLoad={handleLoad}
+        // onProgress={handleProgress}
+        // onEnd={handleEnd}
+        // fullscreen={isFullscreen}
+        // onFullscreenPlayerWillPresent={() => setIsFullscreen(true)}
+        // onFullscreenPlayerWillDismiss={() => setIsFullscreen(false)}
+        // playbackRate={playbackRate}
+        // muted={isMuted}
+        // volume={volume}
+      />
+      {/* <TouchableOpacity
+        activeOpacity={1}
+        style={StyleSheet.absoluteFill}
+        onPress={onTouchVideo}
+      >
+        <>
+          {isLoading || isBuffering ? (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          ) : (
+            showControls && (
+              <>
+                {renderCenterControls()}
+                {renderBottomControls()}
+              </>
+            )
+          )}
+        </>
+      </TouchableOpacity>
+      {renderSettingsMenu()}
+      {isFullscreen && (
+        <TouchableOpacity onPress={toggleFullscreen} style={styles.closeButtonFullscreen}>
+          <Icon name="close" size={24} color="#fff" />
+        </TouchableOpacity>
+      )} */}
+    </View>
+  );
+
+  const renderContent = () => (
+    <ScrollView style={styles.scrollContainer}>
+      {/* Content Section */}
+    <View style={styles.contentSection}>
+      {/* Title and Like Section */}
+      <ThemedCard variant="elevated" style={styles.titleCard}>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleTextContainer}>
+            <ThemedText variant="h5" weight="bold" style={styles.title}>
+              {video.title}
+            </ThemedText>
+            
+          </View>
+          <TouchableOpacity 
+            style={[styles.likeButton, { backgroundColor: isLiked ? theme.colors.error : 'transparent' }]}
+            onPress={handleLikePress}
+          >
+            <Icon 
+              name={isLiked ? "favorite" : "favorite-border"} 
+              size={24} 
+              color={isLiked ? "#fff" : theme.colors.error} 
+            />
+            <ThemedText 
+              variant="caption" 
+              color={isLiked ? "inverse" : "error"} 
+              style={{ marginTop: 2 }}
+            >
+              {video.likes_count || 0}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ThemedCard>
+
+      {/* Description Section */}
+      <ThemedCard variant="elevated" style={styles.descriptionCard}>
+        <View style={styles.descriptionHeader}>
+          <Icon name="description" size={20} color={theme.colors.primary} />
+          <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
+            Description
+          </ThemedText>
+        </View>
+        <ThemedText variant="body1" style={styles.description}>
+          {video.description || 'No description available.'}
+        </ThemedText>
+      </ThemedCard>
+
+      {/* Video Information */}
+      <ThemedCard variant="elevated" style={styles.infoCard}>
+        <View style={styles.infoHeader}>
+          <Icon name="info" size={20} color={theme.colors.primary} />
+          <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
+            Video Information
+          </ThemedText>
+        </View>
+        <View style={styles.infoContent}>
+          {video.duration && (
+            <View style={styles.infoItem}>
+              <Icon name="schedule" size={18} color={theme.colors.textSecondary} />
+              <ThemedText variant="body2" color="secondary" style={{ marginLeft: 8 }}>
+                Duration: {video.duration}
+              </ThemedText>
+            </View>
+          )}
+         
+          <View style={styles.infoItem}>
+            <Icon name="calendar-today" size={18} color={theme.colors.textSecondary} />
+            <ThemedText variant="body2" color="secondary" style={{ marginLeft: 8 }}>
+              Published: {new Date(video.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </ThemedText>
+          </View>
+        </View>
+      </ThemedCard>
+
+      {/* Quizzes Section */}
+      {quizzes && quizzes.length > 0 && (
+        <ThemedCard variant="elevated" style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Icon name="quiz" size={20} color={theme.colors.secondary} />
+            <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
+              Quizzes ({quizzes.length})
+            </ThemedText>
+          </View>
+          <View style={styles.quizAssignmentContent}>
+            {quizzes.map((quiz) => (
+              <View key={quiz.quiz_id} style={styles.quizAssignmentItem}>
+                <QuizCard quiz={quiz} />
+              </View>
+            ))}
+          </View>
+        </ThemedCard>
+      )}
+
+      {/* Assignments Section */}
+      {assignments && assignments.length > 0 && (
+        <ThemedCard variant="elevated" style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Icon name="assignment" size={20} color={theme.colors.warning} />
+            <ThemedText variant="h5" weight="bold" style={{ marginLeft: 8 }}>
+              Assignments ({assignments.length})
+            </ThemedText>
+          </View>
+          <View style={styles.quizAssignmentContent}>
+            {assignments.map((assignment) => (
+              <View key={assignment.assignment_id} style={styles.quizAssignmentItem}>
+                <AssignmentCard assignment={assignment} />
+              </View>
+            ))}
+          </View>
+        </ThemedCard>
+      )}
+    </View>
+  </ScrollView>
+  </>
+)}
+</SafeAreaView>
+<DialogComponent />
+</Modal>
+);
 };
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 0 : 10,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    backgroundColor: theme.colors.primary,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 20,
-  },
-  shareHeaderButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoSection: {
-    backgroundColor: '#000',
-  },
-  videoContainer: {
-    width: screenWidth,
-    height: screenWidth * 9 / 16, // 16:9 aspect ratio
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  controlsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  centerControls: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -100 }, { translateY: -60 }],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: 200,
-  },
-  centerPlayButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 28,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  seekButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 22,
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controlButton: {
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  controlButtonBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 22,
-    padding: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButtonBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 28,
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  touchFeedback: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  bottomControls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'column',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  fullscreenBottomControls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  bottomLeftControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  bottomRightControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 'auto',
-  },
-  playPauseButton: {
-    marginRight: 16,
-  },
-  volumeButton: {
-    marginRight: 16,
-  },
-  timeContainer: {
-    marginRight: 16,
-  },
-  settingsButton: {
-    marginLeft: 12,
-  },
-  pipButton: {
-    marginLeft: 12,
-  },
-  fullscreenButton: {
-    marginLeft: 12,
-  },
-  progressContainer: {
-    flex: 1,
-    marginRight: 120,
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#fff',
-  },
-  settingsMenu: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    borderRadius: 8,
-    minWidth: 200,
-    maxHeight: 300,
-  },
-  settingsItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  settingsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  selectedItem: {
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    justifyContent: 'space-between',
-  },
-  closeButtonFullscreen: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 1000,
-  },
-  progressBarContainer: {
-    flex: 1,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 3,
-    position: 'relative',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FF0000',
-    borderRadius: 3,
-  },
-  progressThumb: {
-    position: 'absolute',
-    top: -4,
-    width: 14,
-    height: 14,
-    backgroundColor: '#FF0000',
-    borderRadius: 7,
-    marginLeft: -7,
-  },
-  contentSection: {
-    padding: 20,
-    backgroundColor: theme.colors.background,
-  },
-  titleCard: {
-    marginBottom: 16,
-    padding: 20,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  titleTextContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  title: {
-    marginBottom: 8,
-    lineHeight: 28,
-  },
-  metaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likeButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
-    borderRadius: 8,
-    minWidth: 60,
-  },
-  descriptionCard: {
-    marginBottom: 16,
-    padding: 20,
-  },
-  descriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  description: {
-    lineHeight: 24,
-  },
-  infoCard: {
-    marginBottom: 16,
-    padding: 20,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  infoContent: {
-    gap: 12,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quizAssignmentContent: {
-    gap: 12,
-  },
-  quizAssignmentItem: {
-    marginBottom: 8,
-  },
-  // Fullscreen styles
-  fullscreenContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  fullscreenVideoContainer: {
-    width: screenWidth,
-    height: screenHeight,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  fullscreenVideo: {
-    width: '100%',
-    height: '100%',
-  },
-  fullscreenControlsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+container: {
+flex: 1,
+backgroundColor: theme.colors.background,
+},
+scrollContainer: {
+flex: 1,
+},
+header: {
+flexDirection: 'row',
+alignItems: 'center',
+justifyContent: 'space-between',
+paddingTop: Platform.OS === 'ios' ? 0 : 10,
+paddingBottom: 15,
+paddingHorizontal: 20,
+backgroundColor: theme.colors.primary,
+},
+backButton: {
+width: 40,
+height: 40,
+borderRadius: 20,
+backgroundColor: 'rgba(255,255,255,0.2)',
+justifyContent: 'center',
+alignItems: 'center',
+},
+headerTitle: {
+flex: 1,
+textAlign: 'center',
+marginHorizontal: 20,
+},
+shareHeaderButton: {
+width: 40,
+height: 40,
+borderRadius: 20,
+backgroundColor: 'rgba(255,255,255,0.2)',
+justifyContent: 'center',
+alignItems: 'center',
+},
+videoSection: {
+backgroundColor: '#000',
+},
+videoContainer: {
+width: screenWidth,
+height: screenWidth * 9 / 16, // 16:9 aspect ratio
+position: 'relative',
+justifyContent: 'center',
+},
+video: {
+width: '100%',
+height: '100%',
+},
+loadingOverlay: {
+position: 'absolute',
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+justifyContent: 'center',
+alignItems: 'center',
+backgroundColor: 'rgba(0,0,0,0.7)',
+},
+controlsOverlay: {
+position: 'absolute',
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+justifyContent: 'space-between',
+alignItems: 'center',
+},
+centerControls: {
+position: 'absolute',
+top: '50%',
+left: '50%',
+transform: [{ translateX: -100 }, { translateY: -60 }],
+flexDirection: 'row',
+alignItems: 'center',
+justifyContent: 'space-between',
+width: 200,
+},
+centerPlayButton: {
+backgroundColor: 'rgba(0, 0, 0, 0.7)',
+borderRadius: 28,
+padding: 12,
+justifyContent: 'center',
+alignItems: 'center',
+},
+seekButton: {
+backgroundColor: 'rgba(0, 0, 0, 0.6)',
+borderRadius: 22,
+padding: 8,
+justifyContent: 'center',
+alignItems: 'center',
+},
+controlButton: {
+shadowColor: '#000',
+shadowOffset: {
+width: 0,
+height: 2,
+},
+shadowOpacity: 0.25,
+shadowRadius: 3.84,
+elevation: 5,
+},
+controlButtonBackground: {
+backgroundColor: 'rgba(0, 0, 0, 0.8)',
+borderRadius: 22,
+padding: 6,
+justifyContent: 'center',
+alignItems: 'center',
+},
+playButtonBackground: {
+backgroundColor: 'rgba(0, 0, 0, 0.8)',
+borderRadius: 28,
+padding: 10,
+justifyContent: 'center',
+alignItems: 'center',
+},
+touchFeedback: {
+position: 'absolute',
+width: 60,
+height: 60,
+backgroundColor: 'rgba(0, 0, 0, 0.8)',
+borderRadius: 30,
+justifyContent: 'center',
+alignItems: 'center',
+zIndex: 1000,
+},
+bottomControls: {
+position: 'absolute',
+bottom: 0,
+left: 0,
+right: 0,
+flexDirection: 'column',
+backgroundColor: 'rgba(0, 0, 0, 0.8)',
+paddingHorizontal: 16,
+paddingVertical: 12,
+},
+fullscreenBottomControls: {
+position: 'absolute',
+bottom: 0,
+left: 0,
+right: 0,
+flexDirection: 'row',
+alignItems: 'center',
+backgroundColor: 'rgba(0, 0, 0, 0.8)',
+paddingHorizontal: 16,
+paddingVertical: 12,
+},
+bottomLeftControls: {
+flexDirection: 'row',
+alignItems: 'center',
+},
+bottomRightControls: {
+flexDirection: 'row',
+alignItems: 'center',
+marginLeft: 'auto',
+},
+playPauseButton: {
+marginRight: 16,
+},
+volumeButton: {
+marginRight: 16,
+},
+timeContainer: {
+marginRight: 16,
+},
+settingsButton: {
+marginLeft: 12,
+},
+pipButton: {
+marginLeft: 12,
+},
+fullscreenButton: {
+marginLeft: 12,
+},
+progressContainer: {
+flex: 1,
+marginRight: 120,
+},
+timeText: {
+fontSize: 12,
+color: '#fff',
+},
+settingsMenu: {
+position: 'absolute',
+bottom: 80,
+right: 20,
+backgroundColor: 'rgba(0, 0, 0, 0.9)',
+borderRadius: 8,
+minWidth: 200,
+maxHeight: 300,
+},
+settingsItem: {
+flexDirection: 'row',
+alignItems: 'center',
+paddingHorizontal: 16,
+paddingVertical: 12,
+borderBottomWidth: 1,
+borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+},
+settingsHeader: {
+flexDirection: 'row',
+alignItems: 'center',
+paddingHorizontal: 16,
+paddingVertical: 12,
+borderBottomWidth: 1,
+borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+backgroundColor: 'rgba(255, 255, 255, 0.1)',
+},
+selectedItem: {
+backgroundColor: 'rgba(255, 0, 0, 0.2)',
+justifyContent: 'space-between',
+},
+closeButtonFullscreen: {
+position: 'absolute',
+top: 20,
+right: 20,
+backgroundColor: 'rgba(0, 0, 0, 0.7)',
+borderRadius: 20,
+padding: 8,
+zIndex: 1000,
+},
+progressBarContainer: {
+flex: 1,
+},
+progressBar: {
+height: 6,
+backgroundColor: 'rgba(255, 255, 255, 0.3)',
+borderRadius: 3,
+position: 'relative',
+},
+progressFill: {
+height: '100%',
+backgroundColor: '#FF0000',
+borderRadius: 3,
+},
+progressThumb: {
+position: 'absolute',
+top: -4,
+width: 14,
+height: 14,
+backgroundColor: '#FF0000',
+borderRadius: 7,
+marginLeft: -7,
+},
+contentSection: {
+padding: 20,
+backgroundColor: theme.colors.background,
+},
+titleCard: {
+marginBottom: 16,
+padding: 20,
+},
+titleContainer: {
+flexDirection: 'row',
+alignItems: 'flex-start',
+justifyContent: 'space-between',
+},
+titleTextContainer: {
+flex: 1,
+marginRight: 16,
+},
+title: {
+marginBottom: 8,
+lineHeight: 28,
+},
+metaContainer: {
+flexDirection: 'row',
+flexWrap: 'wrap',
+gap: 16,
+},
+metaItem: {
+flexDirection: 'row',
+alignItems: 'center',
+},
+likeButton: {
+alignItems: 'center',
+justifyContent: 'center',
+padding: 8,
+borderRadius: 8,
+minWidth: 60,
+},
+descriptionCard: {
+marginBottom: 16,
+padding: 20,
+},
+descriptionHeader: {
+flexDirection: 'row',
+alignItems: 'center',
+marginBottom: 12,
+},
+description: {
+lineHeight: 24,
+},
+infoCard: {
+marginBottom: 16,
+padding: 20,
+},
+infoHeader: {
+flexDirection: 'row',
+alignItems: 'center',
+marginBottom: 16,
+},
+infoContent: {
+gap: 12,
+},
+infoItem: {
+flexDirection: 'row',
+alignItems: 'center',
+},
+quizAssignmentContent: {
+gap: 12,
+},
+quizAssignmentItem: {
+marginBottom: 8,
+},
+// Fullscreen styles
+fullscreenContainer: {
+flex: 1,
+backgroundColor: '#000',
+},
+fullscreenVideoContainer: {
+width: screenWidth,
+height: screenHeight,
+position: 'relative',
+justifyContent: 'center',
+},
+fullscreenVideo: {
+width: '100%',
+height: '100%',
+},
+fullscreenControlsOverlay: {
+position: 'absolute',
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+justifyContent: 'space-between',
+alignItems: 'center',
+},
 });
 
 export default EnhancedVideoPlayer;

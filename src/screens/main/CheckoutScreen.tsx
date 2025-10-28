@@ -16,7 +16,7 @@ import { guestCoursePurchaseAPI } from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
 import Button from '../../components/common/Button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../navigation/types';
 import { useCustomDialog } from '../../hooks/useCustomDialog';
 
 type CheckoutScreenRouteProp = RouteProp<RootStackParamList, 'Checkout'>;

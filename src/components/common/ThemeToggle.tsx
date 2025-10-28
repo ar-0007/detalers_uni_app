@@ -2,15 +2,16 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
+import { toggleTheme } from '../../store/slices/themeSlice';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ThemeToggle: React.FC = () => {
   const dispatch = useDispatch();
-  const isDark = useSelector((state: RootState) => state.theme.isDark);
+  const isDark = useSelector((state: RootState) => state.theme.isDarkMode);
   const theme = useSelector((state: RootState) => state.theme.theme);
 
-  const toggleTheme = () => {
-    dispatch({ type: 'theme/toggleTheme' });
+  const handleToggleTheme = () => {
+    dispatch(toggleTheme());
   };
 
   return (
@@ -22,7 +23,7 @@ const ThemeToggle: React.FC = () => {
           borderColor: theme.colors.border,
         },
       ]}
-      onPress={toggleTheme}
+      onPress={handleToggleTheme}
       activeOpacity={0.8}
     >
       <Icon
@@ -50,4 +51,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ThemeToggle; 
+export default ThemeToggle;

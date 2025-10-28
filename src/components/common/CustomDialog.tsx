@@ -151,15 +151,15 @@ const styles = StyleSheet.create({
   },
   dialogTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     marginTop: 16,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 28,
   },
   dialogMessage: {
     fontSize: 16,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     marginBottom: 28,
   },
   buttonContainer: {

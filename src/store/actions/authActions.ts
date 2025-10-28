@@ -18,15 +18,26 @@ export const loginUser = (email: string, password: string) => {
       // Call the API
       const response = await authAPI.login(email, password);
 
-      if (response.success) {
+      if (response.success && response.data) {
         const { user, token } = response.data;
+
+        // Transform user data from API format to auth slice format
+        const transformedUser = {
+          id: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          isActive: user.is_active,
+          isFirstLogin: false // Default value since it's not in the API User interface
+        };
 
         // Store token and user data
         await tokenStorage.setToken(token);
         await userStorage.setUserData(user);
 
-        // Dispatch success action
-        dispatch(loginSuccess({ user, token }));
+        // Dispatch success action with transformed user
+        dispatch(loginSuccess({ user: transformedUser, token }));
       } else {
         dispatch(loginFailure(response.error?.message || 'Login failed'));
       }
@@ -88,8 +99,19 @@ export const checkAuthStatus = () => {
       const userData = await userStorage.getUserData();
 
       if (token && userData) {
+        // Transform user data from API format to auth slice format
+        const transformedUser = {
+          id: userData.user_id,
+          email: userData.email,
+          firstName: userData.first_name,
+          lastName: userData.last_name,
+          role: userData.role,
+          isActive: userData.is_active,
+          isFirstLogin: false // Default value since it's not in the API User interface
+        };
+
         // User has valid stored data
-        dispatch(loginSuccess({ user: userData, token }));
+        dispatch(loginSuccess({ user: transformedUser, token }));
       }
     } catch (error) {
       console.error('Error checking auth status:', error);

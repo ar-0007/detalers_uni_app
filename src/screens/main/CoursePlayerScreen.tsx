@@ -441,18 +441,19 @@ const CoursePlayerScreen: React.FC = () => {
       {showVideoPlayer && currentPart?.intro_video_url && (
         <EnhancedVideoPlayer
           visible={showVideoPlayer}
-          podcast={{
-            podcast_id: currentPart.course_id,
+          video={{
+            video_id: currentPart.course_id,
             title: currentPart.title,
             description: currentPart.description || '',
             video_url: currentPart.intro_video_url,
             thumbnail_url: '',
             duration: currentPart.duration_hours ? `${currentPart.duration_hours}h` : '',
             created_at: currentPart.created_at || course.created_at,
-            updated_at: currentPart.created_at || course.created_at, // Add required updated_at field
-            status: 'published', // Add required status field
+            updated_at: currentPart.created_at || course.created_at,
+            status: 'published',
             course_id: currentPart.course_id,
             chapter_id: `${currentPart.course_id}_part_${currentPart.video_part}`,
+            likes_count: 0,
           }}
           assignments={currentPart.assignments || []}
           quizzes={currentPart.quizzes || []}

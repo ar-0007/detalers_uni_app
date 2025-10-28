@@ -44,7 +44,7 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
       if (response.success && response.data) {
         setMySubmissions(response.data);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading submissions:', error);
     } finally {
       setLoadingSubmissions(false);
@@ -88,7 +88,7 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
         console.error('Submission failed:', response);
         Alert.alert('Error', response.message || 'Failed to submit assignment. Please try again.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting assignment:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to submit assignment. Please try again.';
       Alert.alert('Error', errorMessage);
@@ -120,25 +120,25 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
 
   return (
     <>
-      <GlassCard style={[styles.card, { backgroundColor: theme.cardBackground }]}>
-        <View style={styles.header}>
-          <Icon name="assignment" size={24} color={theme.primary} />
-          <Text style={[styles.title, { color: theme.text }]}>{assignment.title}</Text>
+      <GlassCard style={[styles.card, { backgroundColor: theme.colors.cardBackground }]}>
+          <View style={styles.header}>
+          <Icon name="assignment" size={24} color={theme.colors.primary} />
+          <Text style={[styles.title, { color: theme.colors.text }]}>{assignment.title}</Text>
           {isOverdue && (
-            <Icon name="warning" size={20} color={theme.error} />
+            <Icon name="warning" size={20} color={theme.colors.error} />
           )}
         </View>
         
         {assignment.description && (
-          <Text style={[styles.description, { color: theme.textSecondary }]}>
+          <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
             {assignment.description}
           </Text>
         )}
         
         <View style={styles.info}>
           <View style={styles.infoRow}>
-            <Icon name="schedule" size={16} color={theme.textSecondary} />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+            <Icon name="schedule" size={16} color={theme.colors.textSecondary} />
+            <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
               {assignment.due_date 
                 ? `Due: ${new Date(assignment.due_date).toLocaleDateString()}`
                 : 'No due date'
@@ -148,35 +148,35 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
           
           {assignment.max_score && (
             <View style={styles.infoRow}>
-              <Icon name="grade" size={16} color={theme.textSecondary} />
-              <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+              <Icon name="grade" size={16} color={theme.colors.textSecondary} />
+              <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
                 Max Score: {assignment.max_score}
               </Text>
             </View>
           )}
           
           <View style={styles.infoRow}>
-            <Icon name="folder" size={16} color={theme.textSecondary} />
-            <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+            <Icon name="folder" size={16} color={theme.colors.textSecondary} />
+            <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
               {assignment.chapter?.title || assignment.course?.title}
             </Text>
           </View>
         </View>
         
         {hasSubmissions && (
-          <View style={[styles.submissionStatus, { backgroundColor: theme.success + '20' }]}>
-            <Icon name="check-circle" size={16} color={theme.success} />
-            <Text style={[styles.submissionStatusText, { color: theme.success }]}>
+          <View style={[styles.submissionStatus, { backgroundColor: theme.colors.success + '20' }]}>
+            <Icon name="check-circle" size={16} color={theme.colors.success} />
+            <Text style={[styles.submissionStatusText, { color: theme.colors.success }]}>
               Submitted {latestSubmission.score ? `• Score: ${latestSubmission.score}` : ''}
             </Text>
           </View>
         )}
         
         <TouchableOpacity
-          style={[styles.openButton, { backgroundColor: theme.primary }]}
+          style={[styles.openButton, { backgroundColor: theme.colors.primary }]}
           onPress={handleOpenAssignment}
         >
-          <Text style={[styles.openButtonText, { color: theme.background }]}>
+          <Text style={[styles.openButtonText, { color: theme.colors.background }]}>
             {hasSubmissions ? 'View Submission' : 'Submit Assignment'}
           </Text>
         </TouchableOpacity>
@@ -187,33 +187,33 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
             <TouchableOpacity onPress={closeModal}>
-              <Icon name="close" size={24} color={theme.text} />
+              <Icon name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>{assignment.title}</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{assignment.title}</Text>
             <View style={{ width: 24 }} />
           </View>
 
           <ScrollView style={styles.modalContent}>
             {/* Assignment Details */}
             <View style={styles.assignmentDetails}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Assignment Details</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Assignment Details</Text>
               
               {assignment.description && (
-                <Text style={[styles.assignmentDescription, { color: theme.textSecondary }]}>
+                <Text style={[styles.assignmentDescription, { color: theme.colors.textSecondary }]}>
                   {assignment.description}
                 </Text>
               )}
               
               {assignment.assignment_file_url && (
                 <TouchableOpacity
-                  style={[styles.downloadButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  style={[styles.downloadButton, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.border }]}
                   onPress={handleDownloadAssignment}
                 >
-                  <Icon name="download" size={20} color={theme.primary} />
-                  <Text style={[styles.downloadButtonText, { color: theme.primary }]}>
+                  <Icon name="download" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.downloadButtonText, { color: theme.colors.primary }]}>
                     Download Assignment File
                   </Text>
                 </TouchableOpacity>
@@ -223,23 +223,23 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
             {/* Previous Submissions */}
             {hasSubmissions && (
               <View style={styles.submissionsSection}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Submissions</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Submissions</Text>
                 
                 {mySubmissions.map((submission, index) => (
-                  <View key={submission.submission_id} style={[styles.submissionItem, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                  <View key={submission.submission_id} style={[styles.submissionItem, { backgroundColor: theme.colors.cardBackground, borderColor: theme.colors.border }]}>
                     <View style={styles.submissionHeader}>
-                      <Text style={[styles.submissionDate, { color: theme.text }]}>
+                      <Text style={[styles.submissionDate, { color: theme.colors.text }]}>
                         Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                       </Text>
                       {submission.score && (
-                        <Text style={[styles.submissionScore, { color: theme.success }]}>
+                        <Text style={[styles.submissionScore, { color: theme.colors.success }]}>
                           Score: {submission.score}
                         </Text>
                       )}
                     </View>
                     
                     {submission.submission_text && (
-                      <Text style={[styles.submissionText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.submissionText, { color: theme.colors.textSecondary }]}>
                         {submission.submission_text}
                       </Text>
                     )}
@@ -249,17 +249,17 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
                         style={styles.fileDownload}
                         onPress={() => handleDownloadSubmission(submission)}
                       >
-                        <Icon name="attach-file" size={16} color={theme.primary} />
-                        <Text style={[styles.fileDownloadText, { color: theme.primary }]}>
+                        <Icon name="attach-file" size={16} color={theme.colors.primary} />
+                        <Text style={[styles.fileDownloadText, { color: theme.colors.primary }]}>
                           Download Submitted File
                         </Text>
                       </TouchableOpacity>
                     )}
                     
                     {submission.feedback && (
-                      <View style={[styles.feedback, { backgroundColor: theme.primary + '10' }]}>
-                        <Text style={[styles.feedbackLabel, { color: theme.primary }]}>Feedback:</Text>
-                        <Text style={[styles.feedbackText, { color: theme.text }]}>
+                      <View style={[styles.feedback, { backgroundColor: theme.colors.primary + '10' }]}>
+                        <Text style={[styles.feedbackLabel, { color: theme.colors.primary }]}>Feedback:</Text>
+                        <Text style={[styles.feedbackText, { color: theme.colors.text }]}>
                           {submission.feedback}
                         </Text>
                       </View>
@@ -272,16 +272,16 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
             {/* New Submission Form - Only show if no submissions exist and not overdue */}
             {!isOverdue && !hasSubmissions && (
               <View style={styles.submissionForm}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>New Submission</Text>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>New Submission</Text>
                 
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Text Submission</Text>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Text Submission</Text>
                 <TextInput
                   style={[
                     styles.textInput,
                     {
-                      backgroundColor: theme.cardBackground,
-                      borderColor: theme.border,
-                      color: theme.text,
+                      backgroundColor: theme.colors.cardBackground,
+                      borderColor: theme.colors.border,
+                      color: theme.colors.text,
                     }
                   ]}
                   placeholder="Enter your submission text here..."
@@ -299,19 +299,19 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
           </ScrollView>
 
           {!isOverdue && !hasSubmissions && (
-            <View style={[styles.modalFooter, { borderTopColor: theme.border }]}>
+            <View style={[styles.modalFooter, { borderTopColor: theme.colors.border }]}>
               <TouchableOpacity
                 style={[
                   styles.submitButton,
                   {
-                    backgroundColor: submissionText.trim() ? theme.success : theme.border,
+                    backgroundColor: submissionText.trim() ? theme.colors.success : theme.colors.border,
                     opacity: isSubmitting ? 0.7 : 1,
                   }
                 ]}
                 onPress={handleSubmitAssignment}
                 disabled={!submissionText.trim() || isSubmitting}
               >
-                <Text style={[styles.submitButtonText, { color: theme.background }]}>
+                <Text style={[styles.submitButtonText, { color: theme.colors.background }]}>
                   {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
                 </Text>
               </TouchableOpacity>
@@ -320,10 +320,10 @@ const AssignmentCard: React.FC<AssignmentCardProps> = ({ assignment, onSubmissio
           
           {/* Show message when assignment is already submitted */}
           {hasSubmissions && (
-            <View style={[styles.modalFooter, { borderTopColor: theme.border }]}>
-              <View style={[styles.submittedMessage, { backgroundColor: theme.success + '20' }]}>
-                <Icon name="check-circle" size={20} color={theme.success} />
-                <Text style={[styles.submittedMessageText, { color: theme.success }]}>
+            <View style={[styles.modalFooter, { borderTopColor: theme.colors.border }]}>
+              <View style={[styles.submittedMessage, { backgroundColor: theme.colors.success + '20' }]}>
+                <Icon name="check-circle" size={20} color={theme.colors.success} />
+                <Text style={[styles.submittedMessageText, { color: theme.colors.success }]}>
                   Assignment already submitted. You can view your submission above.
                 </Text>
               </View>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginLeft: 12,
     flex: 1,
     lineHeight: 24,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 13,
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   submissionStatus: {
     flexDirection: 'row',
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   },
   submissionStatusText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 8,
   },
   openButton: {
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   openButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     letterSpacing: 0.5,
   },
   modalContainer: {
@@ -438,9 +438,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
-    textAlign: 'center',
+    fontWeight: '600' as const,
+    marginBottom: 16,
+    textAlign: 'center' as const,
     letterSpacing: 0.3,
   },
   modalContent: {
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 16,
     letterSpacing: 0.3,
   },
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   },
   downloadButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 10,
   },
   submissionsSection: {
@@ -510,11 +510,11 @@ const styles = StyleSheet.create({
   },
   submissionDate: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   submissionScore: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   fileDownloadText: {
     fontSize: 13,
     marginLeft: 6,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   feedback: {
     padding: 16,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   feedbackLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 10,
     marginTop: 20,
     letterSpacing: 0.2,
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   },
   fileUploadText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 10,
   },
   selectedFile: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 6,
     flex: 1,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   modalFooter: {
     padding: 20,
@@ -645,8 +645,8 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontWeight: '700' as const,
+    textAlign: 'center' as const,
   },
   submittedMessage: {
     flexDirection: 'row',
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   },
   submittedMessageText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginLeft: 12,
     flex: 1,
     lineHeight: 20,

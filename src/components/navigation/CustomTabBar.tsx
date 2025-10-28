@@ -11,16 +11,11 @@ import { RootState } from '../../store';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ThemedText from '../common/ThemedText';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const { width } = Dimensions.get('window');
 
-interface TabBarProps {
-  state: any;
-  descriptors: any;
-  navigation: any;
-}
-
-const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation }) => {
+const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const theme = useSelector((state: RootState) => state.theme.theme);
   
   // Animation values for each tab
@@ -101,11 +96,11 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
     { name: 'Dashboard', icon: 'home', label: 'Home' },
     { name: 'Courses', icon: 'school', label: 'Courses' },
     { name: 'Mentorship', icon: 'group', label: 'Mentor' },
-    { name: 'Calendar', icon: 'graphic-eq', label: 'Podcast' },
+    { name: 'Calendar', icon: 'calendar-today', label: 'Calendar' },
     { name: 'Profile', icon: 'person', label: 'Profile' },
   ];
 
-  const handleTabPress = (route: any, index: number) => {
+  const handleTabPress = (route: { key: string; name: string }, index: number) => {
     const event = navigation.emit({
       type: 'tabPress',
       target: route.key,
@@ -140,7 +135,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
     }
   };
 
-  const renderTab = (route: any, index: number) => {
+  const renderTab = (route: { key: string; name: string }, index: number) => {
     const { options } = descriptors[route.key];
     const isFocused = state.index === index;
     const tabConfigItem = tabConfig.find(tab => tab.name === route.name);
@@ -173,7 +168,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Icon name={tabConfigItem?.icon} size={24} color={theme.colors.textInverse} />
+                <Icon name={tabConfigItem?.icon || 'home'} size={24} color={theme.colors.textInverse} />
               </LinearGradient>
               <ThemedText
                 variant="caption"
@@ -188,7 +183,7 @@ const CustomTabBar: React.FC<TabBarProps> = ({ state, descriptors, navigation })
           ) : (
             <View style={styles.inactiveTabContainer}>
               <View style={[styles.inactiveIconContainer, { backgroundColor: theme.colors.glass }]}>
-                <Icon name={tabConfigItem?.icon} size={24} color={theme.colors.textSecondary} />
+                <Icon name={tabConfigItem?.icon || 'home'} size={24} color={theme.colors.textSecondary} />
               </View>
               <ThemedText
                 variant="caption"

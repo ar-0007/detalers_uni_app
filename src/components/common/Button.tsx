@@ -90,7 +90,7 @@ const Button: React.FC<ButtonProps> = ({
   const getTextStyle = (): TextStyle => {
     const baseStyle: TextStyle = {
       ...theme.typography.button,
-      textAlign: 'center',
+      textAlign: 'center' as const,
     };
 
     const variantTextStyles = {
@@ -134,4 +134,4 @@ const Button: React.FC<ButtonProps> = ({
   );
 };
 
-export default Button; 
+export default Button;

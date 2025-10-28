@@ -45,6 +45,7 @@ export const lightTheme = {
     background: '#FAFAFA',
     surface: '#FFFFFF',
     card: '#FFFFFF',
+    cardBackground: '#FFFFFF',
     glass: 'rgba(255, 255, 255, 0.9)',
     glassDark: 'rgba(255, 255, 255, 0.7)',
     
@@ -102,74 +103,77 @@ export const lightTheme = {
     // Headings
     h1: {
       fontSize: 32,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       lineHeight: 40,
-      letterSpacing: -0.5,
     },
     h2: {
       fontSize: 28,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       lineHeight: 36,
-      letterSpacing: -0.3,
     },
     h3: {
       fontSize: 24,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 32,
-      letterSpacing: -0.2,
     },
     h4: {
       fontSize: 20,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 28,
-      letterSpacing: -0.1,
     },
     h5: {
       fontSize: 18,
-      fontWeight: '600',
-      lineHeight: 24,
+      fontWeight: '600' as const,
+      lineHeight: 26,
     },
-    
-    // Body text
     body1: {
       fontSize: 16,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
       lineHeight: 24,
     },
     body2: {
       fontSize: 14,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
       lineHeight: 20,
     },
     body3: {
       fontSize: 12,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
       lineHeight: 16,
     },
     
     // Special text
     caption: {
       fontSize: 12,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
       lineHeight: 16,
     },
     overline: {
       fontSize: 10,
-      fontWeight: '500',
-      lineHeight: 12,
+      fontWeight: '500' as const,
+      lineHeight: 14,
       textTransform: 'uppercase',
-      letterSpacing: 1,
+      letterSpacing: 1.5,
     },
     
-    // Buttons
+    // Button text
     button: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      lineHeight: 20,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
+    },
+    buttonLarge: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 24,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
     },
     buttonSmall: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '600' as const,
       lineHeight: 20,
     },
   },
@@ -263,6 +267,7 @@ export const darkTheme = {
     background: '#0A0A0A',
     surface: '#1A1A1A',
     card: '#2A2A2A',
+    cardBackground: '#2A2A2A',
     glass: 'rgba(42, 42, 42, 0.9)',
     glassDark: 'rgba(42, 42, 42, 0.7)',
     
@@ -304,4 +309,4 @@ export const darkTheme = {
 export type Theme = typeof lightTheme;
 export type ThemeColors = typeof lightTheme.colors;
 export type ThemeTypography = typeof lightTheme.typography;
-export type ThemeShadows = typeof lightTheme.shadows; 
+export type ThemeShadows = typeof lightTheme.shadows;

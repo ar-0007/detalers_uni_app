@@ -8,13 +8,13 @@ const getApiBaseUrl = () => {
   
   if (isDevelopment) {
     // Using production backend for development as well
-    return 'https://university-backend-1-28os.onrender.com/api';
+    return 'https://universitybackend-production-9ffe.up.railway.app/api';
     // Alternative: Use local development server if available
     // return 'http://192.168.10.10:4000/api';
   }
   
   // Production URL
-  return 'https://university-backend-1-28os.onrender.com/api';
+  return 'https://universitybackend-production-9ffe.up.railway.app/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -434,50 +434,6 @@ export const assignmentAPI = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
-  },
-};
-
-// Podcast API functions
-export interface Podcast {
-  podcast_id: string;
-  title: string;
-  description?: string;
-  video_url: string;
-  thumbnail_url?: string;
-  duration?: string;
-  status: 'draft' | 'published' | 'archived';
-  views_count?: number;
-  likes_count?: number;
-  scheduled_at?: string;
-  published_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export const podcastAPI = {
-  getPodcasts: async (): Promise<ApiResponse<Podcast[]>> => {
-    const response = await api.get('/podcasts/public');
-    return response.data;
-  },
-
-  getPodcastById: async (podcastId: string): Promise<ApiResponse<Podcast>> => {
-    const response = await api.get(`/podcasts/${podcastId}`);
-    return response.data;
-  },
-
-  likePodcast: async (podcastId: string): Promise<ApiResponse> => {
-    const response = await api.post(`/podcasts/${podcastId}/like`);
-    return response.data;
-  },
-
-  unlikePodcast: async (podcastId: string): Promise<ApiResponse> => {
-    const response = await api.delete(`/podcasts/${podcastId}/like`);
-    return response.data;
-  },
-
-  getLikedPodcasts: async (): Promise<ApiResponse<string[]>> => {
-    const response = await api.get('/podcasts/liked');
     return response.data;
   },
 };

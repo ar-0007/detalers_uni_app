@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { checkAuthStatus } from '../store/actions/authActions';
+import { MainTabParamList } from './types';
 
 // Screens
 import SplashScreen from '../screens/SplashScreen';
@@ -14,18 +15,16 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import DashboardScreen from '../screens/main/DashboardScreen';
 import CoursesScreen from '../screens/main/CoursesScreen';
 import MentorshipScreen from '../screens/main/MentorshipScreen';
-// Remove unused import since PodcastScreen is used instead
-import PodcastScreen from '../screens/main/PodcastScreen'; // Add this import
-// Remove: import CalendarScreen from '../screens/main/CalendarScreen';
+import CalendarScreen from '../screens/main/CalendarScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import CheckoutScreen from '../screens/main/CheckoutScreen';
 import MentorshipCheckoutScreen from '../screens/main/MentorshipCheckoutScreen';
 import CoursePlayerScreen from '../screens/main/CoursePlayerScreen';
 
 // Navigation Types
-import { RootStackParamList, MainTabParamList } from './types';
-export { RootStackParamList, MainTabParamList };
+export type { RootStackParamList, MainTabParamList } from './types';
 
+import { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
@@ -132,10 +131,7 @@ const MainTabNavigator: React.FC = () => {
       />
       <Tab.Screen 
         name="Calendar"
-        component={PodcastScreen} // Changed from CalendarScreen to PodcastScreen
-        options={{
-          tabBarLabel: 'Podcast',
-        }}
+        component={CalendarScreen}
       />
       <Tab.Screen 
         name="Profile" 

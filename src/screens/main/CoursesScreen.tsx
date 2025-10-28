@@ -23,7 +23,7 @@ import GlassCard from '../../components/common/GlassCard';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../navigation/types';
 import { useCustomDialog } from '../../hooks/useCustomDialog';
 
 const { width: screenWidth } = Dimensions.get('window');

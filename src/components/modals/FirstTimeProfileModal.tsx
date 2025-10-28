@@ -29,8 +29,8 @@ const FirstTimeProfileModal: React.FC<FirstTimeProfileModalProps> = ({ visible, 
   const { updateLoading } = useSelector((state: RootState) => state.user);
   const { showDialog, DialogComponent } = useCustomDialog();
 
-  const [firstName, setFirstName] = useState(user?.first_name || '');
-  const [lastName, setLastName] = useState(user?.last_name || '');
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
 
   const handleUpdateProfile = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -64,14 +64,21 @@ const FirstTimeProfileModal: React.FC<FirstTimeProfileModalProps> = ({ visible, 
         title: 'Success',
         message: 'Profile setup completed successfully!',
         type: 'success',
-        onConfirm: onClose
+        buttons: [{
+          text: 'OK',
+          onPress: onClose
+        }]
       });
     } catch (error) {
       console.error('Profile setup error:', error);
       showDialog({
         title: 'Error',
         message: 'Failed to setup profile. Please try again.',
-        type: 'error'
+        type: 'error',
+        buttons: [{
+          text: 'OK',
+          onPress: () => {}
+        }]
       });
     }
   };
@@ -149,8 +156,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   modalContainer: {
     width: '90%',
@@ -164,18 +171,18 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   header: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginBottom: 24,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     marginTop: 12,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 20,
   },
   form: {
@@ -186,7 +193,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     marginBottom: 8,
   },
   input: {

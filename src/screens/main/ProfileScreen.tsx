@@ -65,7 +65,7 @@ const ProfileScreen: React.FC = () => {
     height: 100,
     borderRadius: 50,
     backgroundColor: theme.colors.card,
-    alignSelf: 'center',
+    alignSelf: 'center' as const,
     marginBottom: theme.spacing.md,
     borderWidth: 4,
     borderColor: theme.colors.background,
@@ -79,15 +79,15 @@ const ProfileScreen: React.FC = () => {
   const userNameStyle = {
     ...theme.typography.h3,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    fontWeight: 'bold' as const,
     marginBottom: 4,
   };
 
   const userEmailStyle = {
     ...theme.typography.body1,
     color: theme.colors.background,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     opacity: 0.9,
   };
 
@@ -145,13 +145,13 @@ const ProfileScreen: React.FC = () => {
     ...theme.typography.h5,
     color: theme.colors.text,
     marginBottom: theme.spacing.md,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   };
 
   const infoRowStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
@@ -165,13 +165,13 @@ const ProfileScreen: React.FC = () => {
   const infoValueStyle = {
     ...theme.typography.body2,
     color: theme.colors.text,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   };
 
   const themeToggleContainerStyle = {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingVertical: theme.spacing.sm,
   };
 
@@ -190,8 +190,8 @@ const ProfileScreen: React.FC = () => {
   const logoutButtonTextStyle = {
     ...theme.typography.button,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: 'center' as const,
+    fontWeight: '600' as const,
   };
 
   const updateProfileButtonStyle = {
@@ -209,8 +209,8 @@ const ProfileScreen: React.FC = () => {
   const updateProfileButtonTextStyle = {
     ...theme.typography.button,
     color: theme.colors.background,
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: 'center' as const,
+    fontWeight: '600' as const,
   };
 
   return (
@@ -221,9 +221,9 @@ const ProfileScreen: React.FC = () => {
           <Text style={{
             fontSize: 40,
             color: theme.colors.primary,
-            textAlign: 'center',
+            textAlign: 'center' as const,
             lineHeight: 100,
-            fontWeight: 'bold',
+            fontWeight: 'bold' as const,
           }}>
             {user?.firstName?.charAt(0)?.toUpperCase() || user?.lastName?.charAt(0)?.toUpperCase() || 'U'}
           </Text>
@@ -282,7 +282,7 @@ const ProfileScreen: React.FC = () => {
             <Text style={infoLabelStyle}>Dark Theme</Text>
             <Switch
               value={isDarkMode}
-              onValueChange={() => dispatch(toggleTheme())}
+              onValueChange={(value) => { dispatch(toggleTheme()); }}
               trackColor={{ 
                 false: theme.colors.border, 
                 true: theme.colors.primary 

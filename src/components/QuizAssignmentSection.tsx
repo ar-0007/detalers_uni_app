@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  ViewStyle,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -94,9 +95,9 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-          Loading quizzes and assignments...
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+          Loading...
         </Text>
       </View>
     );
@@ -104,94 +105,104 @@ const QuizAssignmentSection: React.FC<QuizAssignmentSectionProps> = ({ courseId,
 
   if (error) {
     return (
-      <GlassCard style={[styles.errorContainer, { backgroundColor: theme.cardBackground }]}>
-        <Icon name="error" size={48} color={theme.error} />
-        <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
-        <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: theme.primary }]}
-          onPress={loadQuizzesAndAssignments}
-        >
-          <Text style={[styles.retryButtonText, { color: theme.background }]}>Retry</Text>
-        </TouchableOpacity>
-      </GlassCard>
+      <View style={styles.container}>
+        <GlassCard style={StyleSheet.flatten([styles.errorContainer, { backgroundColor: theme.colors.cardBackground }]) as ViewStyle}>
+          <Icon name="error" size={48} color={theme.colors.error} />
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+            onPress={loadQuizzesAndAssignments}
+          >
+            <Text style={[styles.retryButtonText, { color: '#FFFFFF' }]}>
+              Retry
+            </Text>
+          </TouchableOpacity>
+        </GlassCard>
+      </View>
     );
   }
 
-  if (totalItems === 0) {
+  if ((!quizzes || quizzes.length === 0) && (!assignments || assignments.length === 0)) {
     return (
-      <GlassCard style={[styles.emptyContainer, { backgroundColor: theme.cardBackground }]}>
-        <Icon name="school" size={48} color={theme.textSecondary} />
-        <Text style={[styles.emptyTitle, { color: theme.text }]}>No Content Available</Text>
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-          There are no quizzes or assignments for this {chapterId ? 'chapter' : 'course'} yet.
-        </Text>
-      </GlassCard>
+      <View style={styles.container}>
+        <GlassCard style={StyleSheet.flatten([styles.emptyContainer, { backgroundColor: theme.colors.cardBackground }])}>
+          <Icon name="school" size={48} color={theme.colors.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Content Available</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+            No quizzes or assignments have been added yet.
+          </Text>
+        </GlassCard>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Quizzes & Assignments</Text>
-        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-          {quizzes.length} Quiz{quizzes.length !== 1 ? 'es' : ''} • {assignments.length} Assignment{assignments.length !== 1 ? 's' : ''}
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quizzes & Assignments</Text>
+        <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
+          Complete your coursework and track your progress
         </Text>
       </View>
 
-      {/* Tabs */}
-      <View style={[styles.tabContainer, { backgroundColor: theme.cardBackground }]}>
+      <View style={[styles.tabContainer, { backgroundColor: theme.colors.cardBackground }]}>
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'all' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'all' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[
-            styles.tabText,
-            {
-              color: activeTab === 'all' ? theme.primary : theme.textSecondary,
-              fontWeight: activeTab === 'all' ? '600' : '400'
-            }
-          ]}>
-            All ({totalItems})
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color: activeTab === 'all' ? theme.colors.primary : theme.colors.textSecondary,
+                fontWeight: activeTab === 'all' ? '600' as const : 'normal' as const,
+              }
+            ]}
+          >
+            All
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'quizzes' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'quizzes' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('quizzes')}
         >
-          <Text style={[
-            styles.tabText,
-            {
-              color: activeTab === 'quizzes' ? theme.primary : theme.textSecondary,
-              fontWeight: activeTab === 'quizzes' ? '600' : '400'
-            }
-          ]}>
-            Quizzes ({quizzes.length})
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color: activeTab === 'quizzes' ? theme.colors.primary : theme.colors.textSecondary,
+                fontWeight: activeTab === 'quizzes' ? '600' as const : 'normal' as const,
+              }
+            ]}
+          >
+            Quizzes
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'assignments' && { backgroundColor: theme.primary + '20' }
+            activeTab === 'assignments' && { backgroundColor: theme.colors.primary + '20' }
           ]}
           onPress={() => setActiveTab('assignments')}
         >
-          <Text style={[
-            styles.tabText,
-            {
-              color: activeTab === 'assignments' ? theme.primary : theme.textSecondary,
-              fontWeight: activeTab === 'assignments' ? '600' : '400'
-            }
-          ]}>
-            Assignments ({assignments.length})
+          <Text
+            style={[
+              styles.tabText,
+              {
+                color: activeTab === 'assignments' ? theme.colors.primary : theme.colors.textSecondary,
+                fontWeight: activeTab === 'assignments' ? '600' as const : 'normal' as const,
+              }
+            ]}
+          >
+            Assignments
           </Text>
         </TouchableOpacity>
       </View>
@@ -270,13 +281,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
+    fontWeight: '600' as const,
     marginBottom: 8,
+    textAlign: 'center' as const,
   },
   emptyText: {
     fontSize: 14,
-    textAlign: 'center',
+    fontWeight: '600' as const,
+    textAlign: 'center' as const,
+    opacity: 0.7,
     lineHeight: 20,
   },
   header: {

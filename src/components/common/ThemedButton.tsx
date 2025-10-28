@@ -100,7 +100,7 @@ const ThemedButton: React.FC<ThemedButtonProps> = ({
     return {
       ...baseTextStyle,
       color: textColor,
-      textAlign: 'center',
+      textAlign: 'center' as const,
     };
   };
 
@@ -135,4 +135,4 @@ const ThemedButton: React.FC<ThemedButtonProps> = ({
   );
 };
 
-export default ThemedButton; 
+export default ThemedButton;

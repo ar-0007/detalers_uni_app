@@ -8,6 +8,7 @@ interface User {
   role: string;
   isActive: boolean;
   isFirstLogin?: boolean; // Add this field
+  isBlocked?: boolean; // Add this field for account status
 }
 
 interface AuthState {

@@ -209,9 +209,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
               </ThemedText>
             </View>
             <View style={styles.featureItem}>
-              <Icon name="headphones" size={24} color={theme.colors.textInverse} />
+              <Icon name="calendar-today" size={24} color={theme.colors.textInverse} />
               <ThemedText variant="caption" color="inverse" align="center">
-                Podcasts
+                Calendar
               </ThemedText>
             </View>
           </View>
@@ -338,4 +338,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WelcomeScreen; 
+export default WelcomeScreen;

@@ -1,5 +1,5 @@
 import { Dispatch } from 'redux';
-import { courseAPI, podcastAPI, Course, Category, VideoSeries, Podcast } from '../../services/api';
+import { courseAPI, Course, Category, VideoSeries } from '../../services/api';
 import {
   fetchCoursesStart,
   fetchCoursesSuccess,
@@ -11,9 +11,6 @@ import {
   fetchVideoSeriesSuccess,
   fetchVideoSeriesFailure,
   clearCourseError,
-  fetchPodcastsStart,
-  fetchPodcastsSuccess,
-  fetchPodcastsFailure,
 } from '../slices/courseSlice';
 
 // Fetch all courses
@@ -109,18 +106,18 @@ export const fetchCategories = () => {
   };
 };
 
-// Fetch video series (for podcasts)
+// Fetch video series
 export const fetchVideoSeries = () => {
   return async (dispatch: Dispatch) => {
     try {
-      dispatch(fetchPodcastsStart());
+      dispatch(fetchVideoSeriesStart());
 
       const response = await courseAPI.getVideoSeries();
 
       if (response.success) {
-        dispatch(fetchPodcastsSuccess(response.data || []));
+        dispatch(fetchVideoSeriesSuccess(response.data || []));
       } else {
-        dispatch(fetchPodcastsFailure(response.error?.message || 'Failed to fetch video series'));
+        dispatch(fetchVideoSeriesFailure(response.error?.message || 'Failed to fetch video series'));
       }
     } catch (error: any) {
       console.error('Fetch video series error:', error);
@@ -135,38 +132,7 @@ export const fetchVideoSeries = () => {
         errorMessage = error.message;
       }
 
-      dispatch(fetchPodcastsFailure(errorMessage));
-    }
-  };
-};
-
-// Fetch podcasts
-export const fetchPodcasts = () => {
-  return async (dispatch: Dispatch) => {
-    try {
-      dispatch(fetchPodcastsStart());
-      
-      const response = await podcastAPI.getPodcasts();
-      
-      if (response.success) {
-        dispatch(fetchPodcastsSuccess(response.data || []));
-      } else {
-        dispatch(fetchPodcastsFailure(response.error?.message || 'Failed to fetch podcasts'));
-      }
-    } catch (error: any) {
-      console.error('Fetch podcasts error:', error);
-      
-      let errorMessage = 'Failed to fetch podcasts. Please try again.';
-      
-      if (error.response?.status === 401) {
-        errorMessage = 'Please log in to view podcasts.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to view podcasts.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      dispatch(fetchPodcastsFailure(errorMessage));
+      dispatch(fetchVideoSeriesFailure(errorMessage));
     }
   };
 };
